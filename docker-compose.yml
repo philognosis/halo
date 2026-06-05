@@ -91,6 +91,96 @@ services:
       start_period: 20s
 
   # ---------------------------------------------------------------------------
+  # Temporal auto-setup — durable workflow orchestration server
+  # ---------------------------------------------------------------------------
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: staffing-temporal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "7233:7233"
+    environment:
+      DB:                   "postgres"
+      DB_PORT:              "5432"
+      POSTGRES_USER:        "${POSTGRES_USER:-staffing}"
+      POSTGRES_PWD:         "${POSTGRES_PASSWORD:-staffing-changeme}"
+      POSTGRES_SEEDS:       "postgres"
+      DYNAMIC_CONFIG_FILE_PATH: "config/dynamicconfig/development-sql.yaml"
+    volumes:
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
+    networks:
+      - staffing-net
+    healthcheck:
+      test: ["CMD", "temporal", "workflow", "list", "--namespace", "default"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Temporal UI — web dashboard for workflow inspection
+  # ---------------------------------------------------------------------------
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: staffing-temporal-ui
+    restart: unless-stopped
+    depends_on:
+      - temporal
+    ports:
+      - "8080:8080"
+    environment:
+      TEMPORAL_ADDRESS: "temporal:7233"
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # Worker — Temporal worker process (registers workflows + activities)
+  # ---------------------------------------------------------------------------
+  worker:
+    build: ./
+    container_name: staffing-worker
+    restart: unless-stopped
+    command: ["python", "-m", "src.worker"]
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      fuseki:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:    "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST:   "temporal:7233"
+      FUSEKI_ENDPOINT: "${FUSEKI_ENDPOINT:-http://fuseki:3030/staffing}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    volumes:
+      - ./src:/app/src
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # pg-listener — asyncpg LISTEN/NOTIFY → Temporal workflow starter
+  # ---------------------------------------------------------------------------
+  pg-listener:
+    build: ./
+    container_name: staffing-pg-listener
+    restart: unless-stopped
+    command: ["python", "-m", "src.events.pg_listener"]
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:  "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST: "temporal:7233"
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
   # PgAdmin 4  — optional web UI (activate with: --profile tools)
   # ---------------------------------------------------------------------------
   pgadmin:
