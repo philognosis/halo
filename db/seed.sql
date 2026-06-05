@@ -9,27 +9,27 @@
 -- =============================================================================
 -- PERSONS  (12 consultants across bands / regions)
 -- =============================================================================
-INSERT INTO person (id, name, email, role, band, location, office, region, total_experience_months, experience_in_role_months) VALUES
+INSERT INTO person (id, name, email, role, band, location, office, region, hire_date, status, total_experience_months, experience_in_role_months) VALUES
 -- EMEA
-('a1000000-0000-0000-0000-000000000001', 'Amelia Hartley',      'amelia.hartley@enterprise.org',    'Partner',            'Partner',            'London',     'London HQ',       'EMEA',     240, 60),
-('a1000000-0000-0000-0000-000000000002', 'Thomas Becker',       'thomas.becker@enterprise.org',     'Senior Manager',     'Senior Manager',     'Frankfurt',  'Frankfurt Office','EMEA',     180, 36),
-('a1000000-0000-0000-0000-000000000003', 'Priya Sharma',        'priya.sharma@enterprise.org',      'Manager',            'Manager',            'London',     'London HQ',       'EMEA',     120, 24),
-('a1000000-0000-0000-0000-000000000004', 'Luca Rossi',          'luca.rossi@enterprise.org',        'Senior Consultant',  'Senior Consultant',  'London',     'London HQ',       'EMEA',     84,  18),
-('a1000000-0000-0000-0000-000000000005', 'Sophie Müller',       'sophie.muller@enterprise.org',     'Consultant',         'Consultant',         'Frankfurt',  'Frankfurt Office','EMEA',     36,  12),
+('a1000000-0000-0000-0000-000000000001', 'Amelia Hartley',      'amelia.hartley@enterprise.org',    'Partner',            'Partner',            'London',     'London HQ',       'EMEA',     '2006-03-01', 'active',  240, 60),
+('a1000000-0000-0000-0000-000000000002', 'Thomas Becker',       'thomas.becker@enterprise.org',     'Senior Manager',     'Senior Manager',     'Frankfurt',  'Frankfurt Office','EMEA',     '2011-09-15', 'active',  180, 36),
+('a1000000-0000-0000-0000-000000000003', 'Priya Sharma',        'priya.sharma@enterprise.org',      'Manager',            'Manager',            'London',     'London HQ',       'EMEA',     '2016-06-01', 'active',  120, 24),
+('a1000000-0000-0000-0000-000000000004', 'Luca Rossi',          'luca.rossi@enterprise.org',        'Senior Consultant',  'Senior Consultant',  'London',     'London HQ',       'EMEA',     '2019-09-02', 'active',  84,  18),
+('a1000000-0000-0000-0000-000000000005', 'Sophie Müller',       'sophie.muller@enterprise.org',     'Consultant',         'Consultant',         'Frankfurt',  'Frankfurt Office','EMEA',     '2023-01-16', 'bench',   36,  12),
 -- Americas
-('a1000000-0000-0000-0000-000000000006', 'James Whitfield',     'james.whitfield@enterprise.org',   'Director',           'Director',           'New York',   'New York Office', 'Americas', 200, 48),
-('a1000000-0000-0000-0000-000000000007', 'Maria Gonzalez',      'maria.gonzalez@enterprise.org',    'Senior Consultant',  'Senior Consultant',  'New York',   'New York Office', 'Americas', 90,  30),
-('a1000000-0000-0000-0000-000000000008', 'Derek Chen',          'derek.chen@enterprise.org',        'Analyst',            'Analyst',            'New York',   'New York Office', 'Americas', 18,  18),
+('a1000000-0000-0000-0000-000000000006', 'James Whitfield',     'james.whitfield@enterprise.org',   'Director',           'Director',           'New York',   'New York Office', 'Americas', '2009-07-06', 'active',  200, 48),
+('a1000000-0000-0000-0000-000000000007', 'Maria Gonzalez',      'maria.gonzalez@enterprise.org',    'Senior Consultant',  'Senior Consultant',  'New York',   'New York Office', 'Americas', '2018-08-20', 'active',  90,  30),
+('a1000000-0000-0000-0000-000000000008', 'Derek Chen',          'derek.chen@enterprise.org',        'Analyst',            'Analyst',            'New York',   'New York Office', 'Americas', '2024-07-15', 'bench',   18,  18),
 -- APAC
-('a1000000-0000-0000-0000-000000000009', 'Kavya Nair',          'kavya.nair@enterprise.org',        'Manager',            'Manager',            'Singapore',  'Singapore Office','APAC',     108, 20),
-('a1000000-0000-0000-0000-000000000010', 'Rajan Mehta',         'rajan.mehta@enterprise.org',       'Senior Consultant',  'Senior Consultant',  'Mumbai',     'Mumbai Office',   'APAC',     72,  24),
-('a1000000-0000-0000-0000-000000000011', 'Olivia Thompson',     'olivia.thompson@enterprise.org',   'Consultant',         'Consultant',         'Sydney',     'Sydney Office',   'APAC',     48,  14),
-('a1000000-0000-0000-0000-000000000012', 'Wei Zhang',           'wei.zhang@enterprise.org',         'Analyst',            'Analyst',            'Singapore',  'Singapore Office','APAC',     12,  12);
+('a1000000-0000-0000-0000-000000000009', 'Kavya Nair',          'kavya.nair@enterprise.org',        'Manager',            'Manager',            'Singapore',  'Singapore Office','APAC',     '2017-03-13', 'active',  108, 20),
+('a1000000-0000-0000-0000-000000000010', 'Rajan Mehta',         'rajan.mehta@enterprise.org',       'Senior Consultant',  'Senior Consultant',  'Mumbai',     'Mumbai Office',   'APAC',     '2020-05-04', 'active',  72,  24),
+('a1000000-0000-0000-0000-000000000011', 'Olivia Thompson',     'olivia.thompson@enterprise.org',   'Consultant',         'Consultant',         'Sydney',     'Sydney Office',   'APAC',     '2022-02-28', 'active',  48,  14),
+('a1000000-0000-0000-0000-000000000012', 'Wei Zhang',           'wei.zhang@enterprise.org',         'Analyst',            'Analyst',            'Singapore',  'Singapore Office','APAC',     '2025-08-11', 'bench',   12,  12);
 
 -- =============================================================================
 -- SKILLS
 -- =============================================================================
-INSERT INTO skills (id, person_id, skill_id, skill_name, skill_type, proficiency, years) VALUES
+INSERT INTO skills (id, person_id, skill_id, skill_name, skill_type, proficiency_level, years_experience) VALUES
 -- Amelia Hartley — Partner, FinServ, Leadership
 ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'StrategyConsulting',     'Strategy Consulting',    'functional',   'expert',       18.0),
 ('b1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 'ClientRelationships',    'Client Relationships',   'leadership',   'expert',       15.0),

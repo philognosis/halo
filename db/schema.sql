@@ -26,6 +26,10 @@ CREATE TABLE person (
     location                    TEXT        NOT NULL,
     office                      TEXT        NOT NULL,
     region                      TEXT        NOT NULL CHECK (region IN ('EMEA', 'Americas', 'APAC')),
+    hire_date                   DATE,
+    status                      TEXT        NOT NULL DEFAULT 'active' CHECK (status IN (
+                                    'active', 'bench', 'on_leave', 'inactive'
+                                )),
     total_experience_months     INTEGER     NOT NULL CHECK (total_experience_months >= 0),
     experience_in_role_months   INTEGER     NOT NULL CHECK (experience_in_role_months >= 0),
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -38,18 +42,26 @@ COMMENT ON COLUMN person.band IS
   'Grade/seniority band: Analyst → Consultant → Senior Consultant → Manager → Senior Manager → Director → Partner.';
 COMMENT ON COLUMN person.region IS
   'Geographic operating region: EMEA, Americas, or APAC.';
+COMMENT ON COLUMN person.hire_date IS
+  'Date the person joined the firm. Used to compute tenure dynamically (NOW() - hire_date).';
+COMMENT ON COLUMN person.status IS
+  'Current employment/availability status: active (on project or available), bench (available for staffing), on_leave (temporarily unavailable), inactive (left firm).';
 
 -- ---------------------------------------------------------------------------
 -- Table: skills
 -- Skill possessed by a person (projected as gUFO:Quality on the Employee role)
 -- ---------------------------------------------------------------------------
 CREATE TABLE skills (
-    id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
-    person_id   UUID    NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    skill_id    TEXT    NOT NULL,   -- SKOS concept notation (e.g. "Python", "TOGAF")
-    skill_name  TEXT    NOT NULL,
-    skill_type  TEXT    NOT NULL CHECK (skill_type IN ('technical', 'functional', 'leadership', 'domain')),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id         UUID    NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    skill_id          TEXT    NOT NULL,   -- SKOS concept notation (e.g. "Python", "TOGAF")
+    skill_name        TEXT    NOT NULL,
+    skill_type        TEXT    NOT NULL CHECK (skill_type IN ('technical', 'functional', 'leadership', 'domain')),
+    proficiency_level TEXT    NOT NULL DEFAULT 'intermediate' CHECK (proficiency_level IN (
+                          'beginner', 'intermediate', 'advanced', 'expert'
+                      )),
+    years_experience  NUMERIC(4,1) CHECK (years_experience >= 0),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE skills IS
@@ -58,6 +70,10 @@ COMMENT ON COLUMN skills.skill_id IS
   'SKOS skos:notation value linking to the concept in the stf:SkillScheme concept scheme.';
 COMMENT ON COLUMN skills.skill_type IS
   'Broad category: technical | functional | leadership | domain.';
+COMMENT ON COLUMN skills.proficiency_level IS
+  'Self-assessed or manager-assessed proficiency: beginner | intermediate | advanced | expert.';
+COMMENT ON COLUMN skills.years_experience IS
+  'Years of hands-on experience with this skill (fractional, e.g. 2.5).';
 
 -- ---------------------------------------------------------------------------
 -- Table: certifications
@@ -181,6 +197,7 @@ CREATE TABLE opportunity (
     id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id         UUID    NOT NULL REFERENCES team(id) ON DELETE CASCADE,
     role_title      TEXT    NOT NULL,
+    description     TEXT,
     band_required   TEXT    NOT NULL CHECK (band_required IN (
                         'Analyst', 'Consultant', 'Senior Consultant',
                         'Manager', 'Senior Manager', 'Director', 'Partner'
@@ -188,6 +205,7 @@ CREATE TABLE opportunity (
     start_date      DATE    NOT NULL,
     end_date        DATE,
     status          TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled')),
+    notes           TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT opportunity_dates_check CHECK (end_date IS NULL OR end_date >= start_date)
@@ -203,14 +221,20 @@ COMMENT ON TABLE opportunity IS
 CREATE TABLE opportunity_skill (
     id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     opportunity_id  UUID    NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
+    skill_id        TEXT,           -- SKOS concept notation — links to stf:SkillScheme for ontology-aware matching
     skill_name      TEXT    NOT NULL,
     skill_type      TEXT    NOT NULL CHECK (skill_type IN ('technical', 'functional', 'leadership', 'domain')),
+    min_proficiency TEXT    CHECK (min_proficiency IN ('beginner', 'intermediate', 'advanced', 'expert')),
     is_mandatory    BOOLEAN NOT NULL DEFAULT true,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE opportunity_skill IS
   'Skills required for an opportunity. is_mandatory=true means the assigned person MUST have the skill (enforced by SHACL).';
+COMMENT ON COLUMN opportunity_skill.skill_id IS
+  'SKOS skos:notation linking to the skill concept. Enables skos:broaderTransitive matching in SPARQL (e.g. ScrumMaster satisfies AgileDelivery).';
+COMMENT ON COLUMN opportunity_skill.min_proficiency IS
+  'Minimum proficiency level required. NULL means any proficiency is acceptable.';
 
 -- ---------------------------------------------------------------------------
 -- Table: opportunity_qualification
@@ -233,24 +257,29 @@ COMMENT ON TABLE opportunity_qualification IS
 -- The linking relator between a person and an opportunity (gUFO:Relator)
 -- ---------------------------------------------------------------------------
 CREATE TABLE assignment (
-    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    opportunity_id  UUID        NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
-    person_id       UUID        NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-    start_date      DATE        NOT NULL,
+    id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    opportunity_id  UUID          NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
+    person_id       UUID          NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    start_date      DATE          NOT NULL,
     end_date        DATE,
-    status          TEXT        NOT NULL CHECK (status IN ('short_listed', 'staffed', 'cancelled')),
+    allocation_pct  NUMERIC(5,2)  NOT NULL DEFAULT 100 CHECK (allocation_pct > 0 AND allocation_pct <= 100),
+    status          TEXT          NOT NULL CHECK (status IN ('short_listed', 'staffed', 'cancelled')),
     notes           TEXT,
-    assigned_by     UUID        REFERENCES person(id) ON DELETE SET NULL,
-    assigned_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT assignment_dates_check CHECK (end_date IS NULL OR end_date >= start_date)
+    assigned_by     UUID          REFERENCES person(id) ON DELETE SET NULL,
+    assigned_at     TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT assignment_dates_check CHECK (end_date IS NULL OR end_date >= start_date),
+    CONSTRAINT assignment_unique_active UNIQUE NULLS NOT DISTINCT (person_id, opportunity_id, status)
+        DEFERRABLE INITIALLY DEFERRED
 );
 
 COMMENT ON TABLE assignment IS
   'Maps a person to an opportunity. Lifecycle: short_listed → staffed | cancelled. Maps to stf:ProjectAllocation (gUFO:Relator).';
 COMMENT ON COLUMN assignment.status IS
   'Workflow state: short_listed (candidate identified), staffed (confirmed), cancelled (withdrawn).';
+COMMENT ON COLUMN assignment.allocation_pct IS
+  'Percentage of the person capacity committed to this assignment (0 < value <= 100). Required for detecting overcommitment (sum > 100).';
 
 -- ---------------------------------------------------------------------------
 -- Table: prov_log
@@ -275,6 +304,75 @@ COMMENT ON COLUMN prov_log.payload IS
   'Full JSON snapshot of the row at time of change (NEW for INSERT/UPDATE, OLD for DELETE).';
 COMMENT ON COLUMN prov_log.reason IS
   'Optional human-readable justification for the change (e.g., "Approved by engagement partner").';
+
+-- ---------------------------------------------------------------------------
+-- Table: person_language
+-- Languages spoken by a person (gUFO:IntrinsicMode — inherent capability)
+-- ---------------------------------------------------------------------------
+CREATE TABLE person_language (
+    id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id       UUID    NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    language_code   TEXT    NOT NULL,  -- IETF BCP 47 tag e.g. 'en', 'fr', 'de', 'zh-Hans'
+    language_name   TEXT    NOT NULL,
+    proficiency     TEXT    NOT NULL CHECK (proficiency IN (
+                        'native', 'fluent', 'professional', 'basic'
+                    )),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (person_id, language_code)
+);
+
+COMMENT ON TABLE person_language IS
+  'Languages spoken by a person. Maps to gUFO:IntrinsicMode. language_code uses IETF BCP 47 tags.';
+
+-- ---------------------------------------------------------------------------
+-- Table: domain_event
+-- Immutable record of all domain events (event sourcing / pub-sub source)
+-- ---------------------------------------------------------------------------
+CREATE TABLE domain_event (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_type      TEXT        NOT NULL,  -- e.g. PROJECT_CREATED, TEAM_CREATED, ASSIGNMENT_STATUS_CHANGED
+    aggregate_type  TEXT        NOT NULL,  -- e.g. project, team, assignment
+    aggregate_id    UUID        NOT NULL,
+    actor_id        UUID        REFERENCES person(id) ON DELETE SET NULL,
+    payload         JSONB       NOT NULL,  -- full event payload
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    processed_at    TIMESTAMPTZ,           -- set when agent/worker consumes it
+    processing_error TEXT                  -- last error if processing failed
+);
+
+COMMENT ON TABLE domain_event IS
+  'Immutable event log for all domain mutations. Populated by triggers. Consumed by the agentic layer via pg_notify or polling. '
+  'event_type drives the nudge/recommendation workflow (PROJECT_CREATED → nudge leadership; TEAM_CREATED → recommend candidates).';
+
+-- ---------------------------------------------------------------------------
+-- Table: notification
+-- Actionable nudges sent to users (created from domain_events by the agent)
+-- ---------------------------------------------------------------------------
+CREATE TABLE notification (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id        UUID        REFERENCES domain_event(id) ON DELETE SET NULL,
+    recipient_id    UUID        NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    type            TEXT        NOT NULL CHECK (type IN (
+                        'nudge_create_team',        -- project created, no team yet
+                        'nudge_fill_opportunity',   -- team created, opportunities open
+                        'candidate_recommendation', -- agent found a match
+                        'approval_request',         -- HITL approval needed
+                        'assignment_confirmed',     -- person confirmed on opportunity
+                        'assignment_cancelled',     -- assignment cancelled
+                        'certification_expiring'    -- cert expires within 30 days
+                    )),
+    title           TEXT        NOT NULL,
+    body            TEXT        NOT NULL,
+    metadata        JSONB,                -- structured payload (opportunity_id, candidate_ids, etc.)
+    is_read         BOOLEAN     NOT NULL DEFAULT false,
+    read_at         TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ
+);
+
+COMMENT ON TABLE notification IS
+  'Actionable nudges surfaced to users. Created by the agentic layer in response to domain_events. '
+  'The approval_request type represents a HITL gate requiring human action before the agent proceeds.';
 
 -- =============================================================================
 -- INDEXES
@@ -347,3 +445,221 @@ CREATE INDEX idx_prov_actor         ON prov_log(actor_id);
 CREATE INDEX idx_prov_action        ON prov_log(action);
 -- GIN index for JSONB payload querying
 CREATE INDEX idx_prov_payload       ON prov_log USING gin(payload);
+
+-- person_language
+CREATE INDEX idx_lang_person_id     ON person_language(person_id);
+CREATE INDEX idx_lang_code          ON person_language(language_code);
+
+-- person (new columns)
+CREATE INDEX idx_person_status      ON person(status);
+CREATE INDEX idx_person_hire_date   ON person(hire_date);
+
+-- skills (new columns)
+CREATE INDEX idx_skills_proficiency ON skills(proficiency_level);
+
+-- domain_event
+CREATE INDEX idx_event_type         ON domain_event(event_type);
+CREATE INDEX idx_event_aggregate    ON domain_event(aggregate_type, aggregate_id);
+CREATE INDEX idx_event_created      ON domain_event(created_at DESC);
+CREATE INDEX idx_event_unprocessed  ON domain_event(created_at) WHERE processed_at IS NULL;
+CREATE INDEX idx_event_payload      ON domain_event USING gin(payload);
+
+-- notification
+CREATE INDEX idx_notif_recipient    ON notification(recipient_id);
+CREATE INDEX idx_notif_unread       ON notification(recipient_id) WHERE is_read = false;
+CREATE INDEX idx_notif_type         ON notification(type);
+CREATE INDEX idx_notif_created      ON notification(created_at DESC);
+
+-- Covering index for availability computation (the hottest query path)
+CREATE INDEX idx_assign_avail ON assignment(person_id, status, start_date, end_date)
+    WHERE status IN ('short_listed', 'staffed');
+
+-- =============================================================================
+-- VIEWS
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- View: person_availability
+-- Derives the current gUFO Phase for every active person from live assignments.
+-- Phases: Available | PartiallyAllocated | FullyAllocated | OnLeave
+-- This view is the Postgres source that the Jena ABox projection is built from.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE VIEW person_availability AS
+WITH active_alloc AS (
+    SELECT
+        a.person_id,
+        SUM(a.allocation_pct)                                               AS total_pct,
+        COUNT(*)                                                            AS assignment_count,
+        MAX(a.end_date)                                                     AS latest_end,
+        ARRAY_AGG(DISTINCT a.status)                                        AS statuses,
+        ARRAY_AGG(JSONB_BUILD_OBJECT(
+            'assignment_id',   a.id,
+            'opportunity_id',  a.opportunity_id,
+            'status',          a.status,
+            'allocation_pct',  a.allocation_pct,
+            'start_date',      a.start_date,
+            'end_date',        a.end_date
+        )) AS active_assignments
+    FROM assignment a
+    WHERE a.status IN ('short_listed', 'staffed')
+      AND a.start_date <= CURRENT_DATE
+      AND (a.end_date IS NULL OR a.end_date >= CURRENT_DATE)
+    GROUP BY a.person_id
+)
+SELECT
+    p.id                                            AS person_id,
+    p.name,
+    p.band,
+    p.region,
+    p.office,
+    p.status                                        AS person_status,
+    COALESCE(aa.total_pct, 0)                       AS allocated_pct,
+    COALESCE(100 - aa.total_pct, 100)               AS available_pct,
+    COALESCE(aa.assignment_count, 0)                AS active_assignment_count,
+    CASE
+        WHEN p.status = 'on_leave'                  THEN 'OnLeave'
+        WHEN p.status = 'inactive'                  THEN 'Inactive'
+        WHEN aa.total_pct IS NULL                   THEN 'Available'
+        WHEN aa.total_pct >= 100                    THEN 'FullyAllocated'
+        ELSE                                             'PartiallyAllocated'
+    END                                             AS availability_phase,
+    aa.latest_end                                   AS next_available_date,
+    COALESCE(aa.statuses, ARRAY[]::TEXT[])          AS assignment_statuses,
+    COALESCE(aa.active_assignments, ARRAY[]::JSONB[]) AS active_assignments
+FROM person p
+LEFT JOIN active_alloc aa ON aa.person_id = p.id;
+
+COMMENT ON VIEW person_availability IS
+  'Derived availability phase for each person, computed from live assignments. '
+  'availability_phase maps to gUFO Phases: Available | PartiallyAllocated | FullyAllocated | OnLeave. '
+  'This view is used by the SPARQL ABox projection (Postgres → Jena) to maintain the semantic graph. '
+  'available_pct = 100 - sum(allocation_pct) for active assignments overlapping today.';
+
+-- =============================================================================
+-- TRIGGER FUNCTIONS & TRIGGERS (Event-driven domain events + pg_notify)
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- Helper: emit a domain event and fire pg_notify on channel 'staffing_events'
+-- Called by all entity-level triggers below.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_emit_domain_event()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_event_type    TEXT;
+    v_payload       JSONB;
+    v_event_id      UUID;
+BEGIN
+    -- Determine event type from table name + operation
+    v_event_type := TG_TABLE_NAME || '_' || TG_OP;  -- e.g. project_INSERT, assignment_UPDATE
+
+    -- Build payload: NEW row for INSERT/UPDATE, OLD row for DELETE
+    IF TG_OP = 'DELETE' THEN
+        v_payload := TO_JSONB(OLD);
+    ELSE
+        v_payload := TO_JSONB(NEW);
+    END IF;
+
+    -- Insert into domain_event log
+    INSERT INTO domain_event (event_type, aggregate_type, aggregate_id, payload)
+    VALUES (v_event_type, TG_TABLE_NAME, COALESCE(NEW.id, OLD.id), v_payload)
+    RETURNING id INTO v_event_id;
+
+    -- Fire pg_notify so async listeners (Python asyncpg / LangGraph) wake immediately
+    PERFORM pg_notify(
+        'staffing_events',
+        JSONB_BUILD_OBJECT(
+            'event_id',      v_event_id,
+            'event_type',    v_event_type,
+            'aggregate_type', TG_TABLE_NAME,
+            'aggregate_id',  COALESCE(NEW.id, OLD.id)
+        )::TEXT
+    );
+
+    RETURN NEW;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Trigger: project — fire on INSERT (project created → nudge leadership)
+-- ---------------------------------------------------------------------------
+CREATE TRIGGER trg_project_event
+AFTER INSERT OR UPDATE ON project
+FOR EACH ROW EXECUTE FUNCTION fn_emit_domain_event();
+
+-- ---------------------------------------------------------------------------
+-- Trigger: team — fire on INSERT (team created → trigger recommendations)
+-- ---------------------------------------------------------------------------
+CREATE TRIGGER trg_team_event
+AFTER INSERT ON team
+FOR EACH ROW EXECUTE FUNCTION fn_emit_domain_event();
+
+-- ---------------------------------------------------------------------------
+-- Trigger: opportunity — fire on INSERT or status change
+-- ---------------------------------------------------------------------------
+CREATE TRIGGER trg_opportunity_event
+AFTER INSERT OR UPDATE OF status ON opportunity
+FOR EACH ROW EXECUTE FUNCTION fn_emit_domain_event();
+
+-- ---------------------------------------------------------------------------
+-- Trigger: assignment — fire on INSERT and status changes (HITL events)
+-- ---------------------------------------------------------------------------
+CREATE TRIGGER trg_assignment_event
+AFTER INSERT OR UPDATE OF status ON assignment
+FOR EACH ROW EXECUTE FUNCTION fn_emit_domain_event();
+
+-- ---------------------------------------------------------------------------
+-- Trigger: prevent staffing when person.status = 'on_leave' or 'inactive'
+-- Enforces the OnLeave gUFO phase at the DB layer (SHACL enforces it in Jena).
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_block_unavailable_assignment()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_status TEXT;
+BEGIN
+    SELECT status INTO v_status FROM person WHERE id = NEW.person_id;
+    IF v_status IN ('on_leave', 'inactive') THEN
+        RAISE EXCEPTION
+            'Cannot assign person % — current status is "%". '
+            'A person must be active or bench to receive assignments.',
+            NEW.person_id, v_status;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_block_unavailable
+BEFORE INSERT OR UPDATE ON assignment
+FOR EACH ROW EXECUTE FUNCTION fn_block_unavailable_assignment();
+
+-- ---------------------------------------------------------------------------
+-- Trigger: prevent total allocation_pct exceeding 100% for a person on overlapping dates
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_check_allocation_cap()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_total NUMERIC;
+BEGIN
+    SELECT COALESCE(SUM(allocation_pct), 0) INTO v_total
+    FROM assignment
+    WHERE person_id = NEW.person_id
+      AND id        != NEW.id
+      AND status    IN ('short_listed', 'staffed')
+      AND start_date <= COALESCE(NEW.end_date, '9999-12-31'::DATE)
+      AND (end_date IS NULL OR end_date >= NEW.start_date);
+
+    IF v_total + NEW.allocation_pct > 100 THEN
+        RAISE EXCEPTION
+            'Allocation cap exceeded for person %: existing active allocations total %% during requested period. '
+            'Adding %% would exceed 100%%.',
+            NEW.person_id, v_total, NEW.allocation_pct;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_allocation_cap
+BEFORE INSERT OR UPDATE ON assignment
+FOR EACH ROW
+WHEN (NEW.status IN ('short_listed', 'staffed'))
+EXECUTE FUNCTION fn_check_allocation_cap();
