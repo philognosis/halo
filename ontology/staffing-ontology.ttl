@@ -1,0 +1,499 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix geo:  <http://www.opengis.net/ont/geosparql#> .
+@prefix gufo: <http://purl.org/nemo/gufo#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix stf:  <http://enterprise.org/staffing/> .
+@prefix dc:   <http://purl.org/dc/elements/1.1/> .
+
+# =============================================================================
+# Ontology Declaration
+# =============================================================================
+
+<http://enterprise.org/staffing/> a owl:Ontology ;
+    dc:title "Enterprise Staffing Ontology" ;
+    dc:description "OWL 2 ontology for an ontology-driven agentic staffing system. "
+                   "Grounded in the Gentle Unified Foundational Ontology (gUFO) and "
+                   "aligned with PROV-DM for provenance tracking." ;
+    dc:creator "Enterprise Architecture Team" ;
+    owl:versionInfo "1.0.0" ;
+    rdfs:comment "This TBox defines the conceptual schema for supply (people), demand "
+                 "(opportunities), and the bridging relators (allocations) used in "
+                 "consultant staffing operations." .
+
+# =============================================================================
+# SUPPLY SIDE — Person & Role Classes
+# =============================================================================
+
+stf:Person a owl:Class ;
+    rdfs:subClassOf gufo:Kind ;
+    rdfs:label "Person" ;
+    rdfs:comment "A human individual that exists independent of any employment "
+                 "relationship. Corresponds to gUFO:Kind — a rigid sortal whose "
+                 "identity persists regardless of employment or availability phase." .
+
+stf:Employee a owl:Class ;
+    rdfs:subClassOf gufo:Role ;
+    rdfs:subClassOf stf:Person ;
+    rdfs:label "Employee" ;
+    rdfs:comment "An anti-rigid role played by a Person within an organisational "
+                 "context. A person may cease to be an Employee without ceasing to "
+                 "exist as a Person. Corresponds to gUFO:Role." .
+
+stf:Consultant a owl:Class ;
+    rdfs:subClassOf stf:Employee ;
+    rdfs:label "Consultant" ;
+    rdfs:comment "A specialisation of Employee that delivers billable advisory or "
+                 "delivery services to clients. Typically at Analyst through Senior "
+                 "Manager bands." .
+
+stf:Manager a owl:Class ;
+    rdfs:subClassOf stf:Employee ;
+    rdfs:label "Manager" ;
+    rdfs:comment "A specialisation of Employee with people-management and account "
+                 "leadership responsibilities. Manager through Partner bands." .
+
+# =============================================================================
+# PHASES — Availability States (gUFO:Phase)
+# Phases are phases of a sortal, not roles; they inhere in a Person.
+# =============================================================================
+
+stf:AvailabilityPhase a owl:Class ;
+    rdfs:subClassOf gufo:Phase ;
+    rdfs:label "Availability Phase" ;
+    rdfs:comment "Abstract superclass for all staffing availability phases that a "
+                 "Person (as Employee) may occupy at any given time. Exactly one "
+                 "phase applies at a time (enforced by OWL disjointness)." .
+
+stf:Available a owl:Class ;
+    rdfs:subClassOf stf:AvailabilityPhase ;
+    rdfs:label "Available" ;
+    rdfs:comment "The phase in which a Person has capacity and can be staffed onto "
+                 "new engagements. gUFO:Phase inheresIn stf:Person." .
+
+stf:FullyAllocated a owl:Class ;
+    rdfs:subClassOf stf:AvailabilityPhase ;
+    rdfs:label "Fully Allocated" ;
+    rdfs:comment "The phase in which a Person has 100% of their capacity committed "
+                 "to active engagements. No additional staffing is possible without "
+                 "renegotiating existing allocations." .
+
+stf:PartiallyAllocated a owl:Class ;
+    rdfs:subClassOf stf:AvailabilityPhase ;
+    rdfs:label "Partially Allocated" ;
+    rdfs:comment "The phase in which a Person has some capacity committed but has "
+                 "remaining headroom for additional part-time or short-duration work." .
+
+stf:OnLeave a owl:Class ;
+    rdfs:subClassOf stf:AvailabilityPhase ;
+    rdfs:label "On Leave" ;
+    rdfs:comment "The phase in which a Person is temporarily unavailable due to "
+                 "planned or unplanned leave. Must not be staffed during this phase." .
+
+# Mutual exclusion — a person occupies exactly one availability phase at a time
+[ a owl:AllDisjointClasses ;
+    owl:members ( stf:Available stf:FullyAllocated stf:PartiallyAllocated stf:OnLeave ) ] .
+
+# =============================================================================
+# QUALITY CLASSES
+# =============================================================================
+
+stf:SkillProfile a owl:Class ;
+    rdfs:subClassOf gufo:Quality ;
+    rdfs:label "Skill Profile" ;
+    rdfs:comment "The aggregate quality representing the competency profile of an "
+                 "Employee. Individual skill assertions link to SKOS concepts in "
+                 "the stf:SkillScheme taxonomy." .
+
+stf:CertificationRecord a owl:Class ;
+    rdfs:subClassOf gufo:Quality ;
+    rdfs:label "Certification Record" ;
+    rdfs:comment "A quality representing a professional certification held by a "
+                 "Person. Has temporal validity window (issued/expiry dates)." .
+
+stf:QualificationRecord a owl:Class ;
+    rdfs:subClassOf gufo:Quality ;
+    rdfs:label "Qualification Record" ;
+    rdfs:comment "A quality representing an academic or professional qualification "
+                 "held by a Person (e.g., BSc, MBA, PhD)." .
+
+stf:Location a owl:Class ;
+    rdfs:subClassOf gufo:Quality ;
+    rdfs:subClassOf geo:Feature ;
+    rdfs:label "Location" ;
+    rdfs:comment "A geospatial quality associated with a Person (office/city) or a "
+                 "Project. Can carry a geo:asWKT literal for coordinate data." .
+
+# =============================================================================
+# DEMAND SIDE — Engagement, Team, Opportunity
+# =============================================================================
+
+stf:ClientEngagement a owl:Class ;
+    rdfs:subClassOf gufo:Event ;
+    rdfs:label "Client Engagement" ;
+    rdfs:comment "A bounded commercial engagement with a client, analogous to a "
+                 "project. Constitutes a gUFO:Event — it has a defined start and "
+                 "end in time and brings about state changes in Persons." .
+
+stf:ProjectTeam a owl:Class ;
+    rdfs:subClassOf gufo:Collection ;
+    rdfs:label "Project Team" ;
+    rdfs:comment "A collection of Employees assembled to deliver on a "
+                 "ClientEngagement or a workstream within one. Corresponds to "
+                 "gUFO:Collection; must contain at least two staffed seats (SHACL)." .
+
+stf:Opportunity a owl:Class ;
+    rdfs:subClassOf gufo:RoleMixin ;
+    rdfs:label "Opportunity" ;
+    rdfs:comment "An unfilled staffing role within a ProjectTeam. Models the demand "
+                 "side of the staffing relator. Corresponds to gUFO:RoleMixin because "
+                 "it represents a role that can be played by instances of multiple "
+                 "kinds (Consultant or Manager)." .
+
+# =============================================================================
+# RELATORS — Bridging Supply and Demand
+# =============================================================================
+
+stf:ProjectAllocation a owl:Class ;
+    rdfs:subClassOf gufo:Relator ;
+    rdfs:label "Project Allocation" ;
+    rdfs:comment "The relator that mediates the staffing relationship between an "
+                 "Employee and an Opportunity. Carries temporal and percentage "
+                 "attributes. Corresponds to gUFO:Relator because it depends "
+                 "existentially on both relata (Employee and Opportunity)." .
+
+stf:StaffingHistory a owl:Class ;
+    rdfs:subClassOf gufo:Relator ;
+    rdfs:label "Staffing History" ;
+    rdfs:comment "A historical relator representing a past allocation of an Employee "
+                 "to a ClientEngagement. Used for analytics and match-scoring. "
+                 "Distinguished from ProjectAllocation by being temporally closed "
+                 "(both start and end dates are set)." .
+
+# =============================================================================
+# APPROVAL EVENTS
+# =============================================================================
+
+stf:ApprovalEvent a owl:Class ;
+    rdfs:subClassOf gufo:Event ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Approval Event" ;
+    rdfs:comment "An event in which a staffing decision (allocation, shortlisting, "
+                 "or cancellation) is reviewed and approved or rejected. Linked to "
+                 "PROV-DM as a prov:Activity to support audit trails." .
+
+stf:ApprovalDecision a owl:Class ;
+    rdfs:subClassOf stf:ApprovalEvent ;
+    rdfs:label "Approval Decision" ;
+    rdfs:comment "A specific decision made during an ApprovalEvent — either approving "
+                 "or rejecting a proposed staffing allocation." .
+
+# =============================================================================
+# OBJECT PROPERTIES
+# =============================================================================
+
+stf:hasSkill a owl:ObjectProperty ;
+    rdfs:domain stf:Employee ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has skill" ;
+    rdfs:comment "Associates an Employee with a SKOS concept representing a "
+                 "competency in the stf:SkillScheme taxonomy." .
+
+stf:hasCertification a owl:ObjectProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range stf:CertificationRecord ;
+    rdfs:label "has certification" ;
+    rdfs:comment "Links a Person to a certification quality record." .
+
+stf:hasQualification a owl:ObjectProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range stf:QualificationRecord ;
+    rdfs:label "has qualification" ;
+    rdfs:comment "Links a Person to an academic or professional qualification record." .
+
+stf:isStaffedOn a owl:ObjectProperty ;
+    rdfs:domain stf:Employee ;
+    rdfs:range stf:ProjectAllocation ;
+    rdfs:label "is staffed on" ;
+    rdfs:comment "Associates an Employee with the ProjectAllocation relator that "
+                 "mediates their staffing to an Opportunity." .
+
+stf:hasActiveAllocation a owl:ObjectProperty ;
+    rdfs:subPropertyOf stf:isStaffedOn ;
+    rdfs:domain stf:Employee ;
+    rdfs:range stf:ProjectAllocation ;
+    rdfs:label "has active allocation" ;
+    rdfs:comment "Subproperty of isStaffedOn that scopes to currently active "
+                 "(open-ended or future-dated) allocations. Used by SHACL to detect "
+                 "double-booking overlaps." .
+
+stf:allocatedEmployee a owl:ObjectProperty ;
+    owl:inverseOf stf:isStaffedOn ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range stf:Employee ;
+    rdfs:label "allocated employee" ;
+    rdfs:comment "Inverse of isStaffedOn: from a ProjectAllocation to the Employee." .
+
+stf:allocatedToOpportunity a owl:ObjectProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range stf:Opportunity ;
+    rdfs:label "allocated to opportunity" ;
+    rdfs:comment "Associates a ProjectAllocation relator with the Opportunity it fills." .
+
+stf:hasTeam a owl:ObjectProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range stf:ProjectTeam ;
+    rdfs:label "has team" ;
+    rdfs:comment "Associates a ClientEngagement with one or more ProjectTeams "
+                 "responsible for delivery." .
+
+stf:hasOpportunity a owl:ObjectProperty ;
+    rdfs:domain stf:ProjectTeam ;
+    rdfs:range stf:Opportunity ;
+    rdfs:label "has opportunity" ;
+    rdfs:comment "Associates a ProjectTeam with the staffing Opportunities that "
+                 "belong to it." .
+
+stf:hasStaffedSeat a owl:ObjectProperty ;
+    rdfs:domain stf:ProjectTeam ;
+    rdfs:range stf:Employee ;
+    rdfs:label "has staffed seat" ;
+    rdfs:comment "Associates a ProjectTeam with an Employee who fills a staffed role "
+                 "in it. Used by SHACL ProjectTeamStructuralShape to enforce >= 2 members." .
+
+stf:hasLocation a owl:ObjectProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range stf:Location ;
+    rdfs:label "has location" ;
+    rdfs:comment "Associates a Person with their primary office location quality." .
+
+stf:approvedBy a owl:ObjectProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range stf:Person ;
+    rdfs:label "approved by" ;
+    rdfs:comment "Associates a ProjectAllocation with the Person who gave formal "
+                 "approval for the staffing decision." .
+
+stf:wasGeneratedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range stf:ApprovalEvent ;
+    rdfs:label "was generated by" ;
+    rdfs:comment "PROV-DM provenance link: the ProjectAllocation was generated by "
+                 "an ApprovalEvent activity." .
+
+# =============================================================================
+# DATATYPE PROPERTIES
+# =============================================================================
+
+stf:hasName a owl:DatatypeProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "has name" ;
+    rdfs:comment "Full name of the Person." .
+
+stf:hasEmail a owl:DatatypeProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "has email" ;
+    rdfs:comment "Corporate email address of the Person. Must be unique." .
+
+stf:hasBand a owl:DatatypeProperty ;
+    rdfs:domain stf:Employee ;
+    rdfs:range xsd:string ;
+    rdfs:label "has band" ;
+    rdfs:comment "Seniority grade band: Analyst, Consultant, Senior Consultant, "
+                 "Manager, Senior Manager, Director, or Partner." .
+
+stf:hasRegion a owl:DatatypeProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "has region" ;
+    rdfs:comment "Operating region of the Person: EMEA, Americas, or APAC." .
+
+stf:hasOffice a owl:DatatypeProperty ;
+    rdfs:domain stf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "has office" ;
+    rdfs:comment "Named office where the Person is primarily based." .
+
+stf:totalExperienceMonths a owl:DatatypeProperty ;
+    rdfs:domain stf:Employee ;
+    rdfs:range xsd:integer ;
+    rdfs:label "total experience months" ;
+    rdfs:comment "Total professional experience in months." .
+
+stf:experienceInRoleMonths a owl:DatatypeProperty ;
+    rdfs:domain stf:Employee ;
+    rdfs:range xsd:integer ;
+    rdfs:label "experience in role months" ;
+    rdfs:comment "Months of experience in current role/band." .
+
+stf:allocationStart a owl:DatatypeProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range xsd:date ;
+    rdfs:label "allocation start" ;
+    rdfs:comment "Date on which the allocation becomes effective." .
+
+stf:allocationEnd a owl:DatatypeProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range xsd:date ;
+    rdfs:label "allocation end" ;
+    rdfs:comment "Date on which the allocation concludes. May be absent for "
+                 "open-ended engagements." .
+
+stf:allocationPct a owl:DatatypeProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "allocation percentage" ;
+    rdfs:comment "Percentage of the Employee's capacity committed to this "
+                 "allocation (0 < value <= 100)." .
+
+stf:assignmentStatus a owl:DatatypeProperty ;
+    rdfs:domain stf:ProjectAllocation ;
+    rdfs:range xsd:string ;
+    rdfs:label "assignment status" ;
+    rdfs:comment "Workflow status of the assignment. Allowable values (owl:oneOf "
+                 "note): short_listed | staffed | cancelled. Enforced by SHACL." .
+
+stf:projectCode a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:string ;
+    rdfs:label "project code" ;
+    rdfs:comment "Human-readable unique reference code for the engagement." .
+
+stf:projectStartDate a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:date ;
+    rdfs:label "project start date" ;
+    rdfs:comment "Contractual or planned start date of the engagement." .
+
+stf:projectEndDate a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:date ;
+    rdfs:label "project end date" ;
+    rdfs:comment "Contractual or planned end date of the engagement." .
+
+stf:engagementIndustry a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:string ;
+    rdfs:label "engagement industry" ;
+    rdfs:comment "Primary industry classification of the client engagement." .
+
+stf:engagementSector a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:string ;
+    rdfs:label "engagement sector" ;
+    rdfs:comment "Sub-sector within the industry (e.g., Banking within FinancialServices)." .
+
+stf:engagementFunction a owl:DatatypeProperty ;
+    rdfs:domain stf:ClientEngagement ;
+    rdfs:range xsd:string ;
+    rdfs:label "engagement function" ;
+    rdfs:comment "Functional area of the engagement (e.g., Technology, Analytics, Strategy)." .
+
+stf:opportunityRole a owl:DatatypeProperty ;
+    rdfs:domain stf:Opportunity ;
+    rdfs:range xsd:string ;
+    rdfs:label "opportunity role" ;
+    rdfs:comment "Job title or functional role title for this staffing opportunity." .
+
+stf:requiredBand a owl:DatatypeProperty ;
+    rdfs:domain stf:Opportunity ;
+    rdfs:range xsd:string ;
+    rdfs:label "required band" ;
+    rdfs:comment "Minimum or target seniority band required for the opportunity." .
+
+stf:isMandatory a owl:DatatypeProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is mandatory" ;
+    rdfs:comment "Indicates whether a skill or qualification requirement for an "
+                 "Opportunity is a hard (mandatory) or soft (nice-to-have) requirement." .
+
+stf:certificationName a owl:DatatypeProperty ;
+    rdfs:domain stf:CertificationRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "certification name" ;
+    rdfs:comment "Name of the certification (e.g., AWS Solutions Architect)." .
+
+stf:certificationIssuer a owl:DatatypeProperty ;
+    rdfs:domain stf:CertificationRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "certification issuer" ;
+    rdfs:comment "Organisation that issued the certification." .
+
+stf:certificationExpiry a owl:DatatypeProperty ;
+    rdfs:domain stf:CertificationRecord ;
+    rdfs:range xsd:date ;
+    rdfs:label "certification expiry" ;
+    rdfs:comment "Expiry date of the certification. Absent means it does not expire." .
+
+stf:qualificationLevel a owl:DatatypeProperty ;
+    rdfs:domain stf:QualificationRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "qualification level" ;
+    rdfs:comment "Academic level: bachelor | master | phd | professional." .
+
+stf:qualificationField a owl:DatatypeProperty ;
+    rdfs:domain stf:QualificationRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "qualification field of study" ;
+    rdfs:comment "Field or discipline of the qualification." .
+
+geo:asWKT a owl:DatatypeProperty ;
+    rdfs:domain stf:Location ;
+    rdfs:range geo:wktLiteral ;
+    rdfs:label "as WKT" ;
+    rdfs:comment "Well-Known Text representation of a geographic point or polygon, "
+                 "e.g., POINT(-0.1276 51.5074) for London." .
+
+# =============================================================================
+# OWL AXIOMS
+# =============================================================================
+
+# ProjectAllocation must participate in at least one isStaffedOn relation
+# (expressed as a minimum cardinality restriction on the inverse property)
+stf:ProjectAllocation rdfs:subClassOf
+    [ a owl:Restriction ;
+        owl:onProperty stf:allocatedEmployee ;
+        owl:minCardinality 1 ] .
+
+# ProjectAllocation must point to exactly one Opportunity
+stf:ProjectAllocation rdfs:subClassOf
+    [ a owl:Restriction ;
+        owl:onProperty stf:allocatedToOpportunity ;
+        owl:cardinality 1 ] .
+
+# A Person has at most one name
+stf:Person rdfs:subClassOf
+    [ a owl:Restriction ;
+        owl:onProperty stf:hasName ;
+        owl:maxCardinality 1 ] .
+
+# A Person has at most one email
+stf:Person rdfs:subClassOf
+    [ a owl:Restriction ;
+        owl:onProperty stf:hasEmail ;
+        owl:maxCardinality 1 ] .
+
+# An Employee has at most one band
+stf:Employee rdfs:subClassOf
+    [ a owl:Restriction ;
+        owl:onProperty stf:hasBand ;
+        owl:maxCardinality 1 ] .
+
+# Property chain: ProjectTeam hasOpportunity Opportunity
+# Combined with allocatedToOpportunity, enables inferring team membership
+# stf:hasTeamMember ← stf:hasOpportunity ∘ (inverse stf:allocatedToOpportunity) ∘ stf:allocatedEmployee
+stf:hasStaffedSeat owl:propertyChainAxiom
+    ( stf:hasOpportunity
+      [ owl:inverseOf stf:allocatedToOpportunity ]
+      stf:allocatedEmployee ) .
+
+# Persons and ProjectAllocations are disjoint (no individual can be both)
+[ a owl:AllDisjointClasses ;
+    owl:members ( stf:Person stf:ProjectAllocation stf:Opportunity stf:ClientEngagement ) ] .
