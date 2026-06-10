@@ -208,6 +208,20 @@ services:
       - staffing-net
 
   # ---------------------------------------------------------------------------
+  # UI — React/Vite adaptive staffing dashboard (served by nginx)
+  # ---------------------------------------------------------------------------
+  ui:
+    build: ./ui
+    container_name: staffing-ui
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
   # PgAdmin 4  — optional web UI (activate with: --profile tools)
   # ---------------------------------------------------------------------------
   pgadmin:
