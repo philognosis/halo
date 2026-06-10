@@ -12,9 +12,7 @@
 
 stf:SkillScheme a skos:ConceptScheme ;
     dc:title "Enterprise Staffing Skill Taxonomy" ;
-    dc:description "SKOS concept scheme for classifying consultant competencies. "
-                   "Aligned with ESCO (European Skills/Competences) label conventions "
-                   "and used as the skill vocabulary in the staffing ontology." ;
+    dc:description "SKOS concept scheme for classifying consultant competencies. Aligned with ESCO (European Skills/Competences) label conventions and used as the skill vocabulary in the staffing ontology." ;
     skos:prefLabel "Enterprise Skill Taxonomy"@en ;
     skos:hasTopConcept stf:TechnicalSkills ;
     skos:hasTopConcept stf:FunctionalSkills ;
@@ -31,8 +29,7 @@ stf:TechnicalSkills a skos:Concept ;
     skos:prefLabel "Technical Skills"@en ;
     skos:altLabel "Tech Skills"@en ;
     skos:notation "TechnicalSkills" ;
-    skos:definition "Skills relating to the design, development, deployment and "
-                    "operation of software, data, and cloud systems."@en ;
+    skos:definition "Skills relating to the design, development, deployment and operation of software, data, and cloud systems."@en ;
     skos:narrower stf:DataEngineering ;
     skos:narrower stf:SoftwareDevelopment ;
     skos:narrower stf:CloudPlatforms ;
@@ -45,8 +42,7 @@ stf:FunctionalSkills a skos:Concept ;
     skos:prefLabel "Functional Skills"@en ;
     skos:altLabel "Business Skills"@en ;
     skos:notation "FunctionalSkills" ;
-    skos:definition "Cross-cutting business capabilities relevant to consulting "
-                    "engagements regardless of industry."@en ;
+    skos:definition "Cross-cutting business capabilities relevant to consulting engagements regardless of industry."@en ;
     skos:narrower stf:StrategyConsulting ;
     skos:narrower stf:ChangeManagement ;
     skos:narrower stf:PMO ;
@@ -58,8 +54,7 @@ stf:LeadershipSkills a skos:Concept ;
     skos:topConceptOf stf:SkillScheme ;
     skos:prefLabel "Leadership Skills"@en ;
     skos:notation "LeadershipSkills" ;
-    skos:definition "Skills related to people leadership, stakeholder engagement, "
-                    "and executive presence in a consulting context."@en ;
+    skos:definition "Skills related to people leadership, stakeholder engagement, and executive presence in a consulting context."@en ;
     skos:narrower stf:TeamLeadership ;
     skos:narrower stf:StakeholderManagement ;
     skos:narrower stf:ExecutivePresence ;
@@ -89,8 +84,7 @@ stf:DataEngineering a skos:Concept ;
     skos:altLabel "DE"@en ;
     skos:altLabel "Data Eng"@en ;
     skos:notation "DataEngineering" ;
-    skos:definition "The practice of designing and building scalable pipelines, "
-                    "warehouses, and lakehouses for large-scale data processing."@en ;
+    skos:definition "The practice of designing and building scalable pipelines, warehouses, and lakehouses for large-scale data processing."@en ;
     skos:broader stf:TechnicalSkills ;
     skos:narrower stf:Python ;
     skos:narrower stf:Spark ;
@@ -103,8 +97,7 @@ stf:SoftwareDevelopment a skos:Concept ;
     skos:prefLabel "Software Development"@en ;
     skos:altLabel "SWE"@en ;
     skos:notation "SoftwareDevelopment" ;
-    skos:definition "Design, implementation, testing and maintenance of software "
-                    "applications and services."@en ;
+    skos:definition "Design, implementation, testing and maintenance of software applications and services."@en ;
     skos:broader stf:TechnicalSkills ;
     skos:narrower stf:Java ;
     skos:narrower stf:React ;
@@ -116,8 +109,7 @@ stf:CloudPlatforms a skos:Concept ;
     skos:prefLabel "Cloud Platforms"@en ;
     skos:altLabel "Cloud"@en ;
     skos:notation "CloudPlatforms" ;
-    skos:definition "Skills in designing, deploying and operating workloads on "
-                    "public cloud infrastructure providers."@en ;
+    skos:definition "Skills in designing, deploying and operating workloads on public cloud infrastructure providers."@en ;
     skos:broader stf:TechnicalSkills ;
     skos:narrower stf:AWS ;
     skos:narrower stf:GCP ;
@@ -128,8 +120,7 @@ stf:DataScience a skos:Concept ;
     skos:prefLabel "Data Science"@en ;
     skos:altLabel "DS"@en ;
     skos:notation "DataScience" ;
-    skos:definition "The application of statistical and machine-learning techniques "
-                    "to extract insights and build predictive models from data."@en ;
+    skos:definition "The application of statistical and machine-learning techniques to extract insights and build predictive models from data."@en ;
     skos:broader stf:TechnicalSkills ;
     skos:narrower stf:MachineLearning ;
     skos:narrower stf:DeepLearning ;
@@ -140,8 +131,7 @@ stf:Analytics a skos:Concept ;
     skos:prefLabel "Analytics"@en ;
     skos:altLabel "BI"@en ;
     skos:notation "Analytics" ;
-    skos:definition "Business intelligence and reporting disciplines including "
-                    "dashboarding, KPI design and self-service analytics."@en ;
+    skos:definition "Business intelligence and reporting disciplines including dashboarding, KPI design and self-service analytics."@en ;
     skos:broader stf:TechnicalSkills .
 
 # =============================================================================
@@ -152,8 +142,7 @@ stf:Python a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "Python"@en ;
     skos:notation "Python" ;
-    skos:definition "The Python programming language, widely used for data "
-                    "engineering, data science, scripting and backend services."@en ;
+    skos:definition "The Python programming language, widely used for data engineering, data science, scripting and backend services."@en ;
     skos:broader stf:DataEngineering .
 
 stf:Spark a skos:Concept ;
@@ -161,8 +150,7 @@ stf:Spark a skos:Concept ;
     skos:prefLabel "Apache Spark"@en ;
     skos:altLabel "Spark"@en ;
     skos:notation "Spark" ;
-    skos:definition "Distributed data processing framework for large-scale batch "
-                    "and streaming analytics."@en ;
+    skos:definition "Distributed data processing framework for large-scale batch and streaming analytics."@en ;
     skos:broader stf:DataEngineering .
 
 stf:SQL a skos:Concept ;
@@ -170,8 +158,7 @@ stf:SQL a skos:Concept ;
     skos:prefLabel "SQL"@en ;
     skos:altLabel "Structured Query Language"@en ;
     skos:notation "SQL" ;
-    skos:definition "Structured Query Language for relational database querying "
-                    "and data manipulation."@en ;
+    skos:definition "Structured Query Language for relational database querying and data manipulation."@en ;
     skos:broader stf:DataEngineering .
 
 stf:Kafka a skos:Concept ;
@@ -179,8 +166,7 @@ stf:Kafka a skos:Concept ;
     skos:prefLabel "Apache Kafka"@en ;
     skos:altLabel "Kafka"@en ;
     skos:notation "Kafka" ;
-    skos:definition "Distributed event streaming platform used for real-time data "
-                    "pipelines and stream processing."@en ;
+    skos:definition "Distributed event streaming platform used for real-time data pipelines and stream processing."@en ;
     skos:broader stf:DataEngineering .
 
 stf:dbt a skos:Concept ;
@@ -188,8 +174,7 @@ stf:dbt a skos:Concept ;
     skos:prefLabel "dbt"@en ;
     skos:altLabel "Data Build Tool"@en ;
     skos:notation "dbt" ;
-    skos:definition "SQL-first transformation framework for analytics engineering "
-                    "and ELT workflows."@en ;
+    skos:definition "SQL-first transformation framework for analytics engineering and ELT workflows."@en ;
     skos:broader stf:DataEngineering .
 
 # =============================================================================
@@ -201,8 +186,7 @@ stf:AWS a skos:Concept ;
     skos:prefLabel "Amazon Web Services"@en ;
     skos:altLabel "AWS"@en ;
     skos:notation "AWS" ;
-    skos:definition "Amazon's cloud computing platform offering IaaS, PaaS and SaaS "
-                    "services including compute, storage, databases and ML."@en ;
+    skos:definition "Amazon's cloud computing platform offering IaaS, PaaS and SaaS services including compute, storage, databases and ML."@en ;
     skos:broader stf:CloudPlatforms .
 
 stf:GCP a skos:Concept ;
@@ -211,8 +195,7 @@ stf:GCP a skos:Concept ;
     skos:altLabel "GCP"@en ;
     skos:altLabel "Google Cloud"@en ;
     skos:notation "GCP" ;
-    skos:definition "Google's cloud computing platform including BigQuery, Vertex AI "
-                    "and Kubernetes Engine."@en ;
+    skos:definition "Google's cloud computing platform including BigQuery, Vertex AI and Kubernetes Engine."@en ;
     skos:broader stf:CloudPlatforms .
 
 stf:Azure a skos:Concept ;
@@ -220,8 +203,7 @@ stf:Azure a skos:Concept ;
     skos:prefLabel "Microsoft Azure"@en ;
     skos:altLabel "Azure"@en ;
     skos:notation "Azure" ;
-    skos:definition "Microsoft's cloud platform offering a wide range of services "
-                    "including Azure Data Factory, Synapse and OpenAI integration."@en ;
+    skos:definition "Microsoft's cloud platform offering a wide range of services including Azure Data Factory, Synapse and OpenAI integration."@en ;
     skos:broader stf:CloudPlatforms .
 
 # =============================================================================
@@ -233,8 +215,7 @@ stf:MachineLearning a skos:Concept ;
     skos:prefLabel "Machine Learning"@en ;
     skos:altLabel "ML"@en ;
     skos:notation "MachineLearning" ;
-    skos:definition "The practice of building models that learn patterns from data "
-                    "to make predictions or decisions."@en ;
+    skos:definition "The practice of building models that learn patterns from data to make predictions or decisions."@en ;
     skos:broader stf:DataScience ;
     skos:narrower stf:PyTorch ;
     skos:narrower stf:TensorFlow .
@@ -244,8 +225,7 @@ stf:DeepLearning a skos:Concept ;
     skos:prefLabel "Deep Learning"@en ;
     skos:altLabel "DL"@en ;
     skos:notation "DeepLearning" ;
-    skos:definition "A subfield of machine learning using multi-layer neural networks "
-                    "for tasks such as image recognition and language modelling."@en ;
+    skos:definition "A subfield of machine learning using multi-layer neural networks for tasks such as image recognition and language modelling."@en ;
     skos:broader stf:DataScience .
 
 stf:NLP a skos:Concept ;
@@ -253,8 +233,7 @@ stf:NLP a skos:Concept ;
     skos:prefLabel "Natural Language Processing"@en ;
     skos:altLabel "NLP"@en ;
     skos:notation "NLP" ;
-    skos:definition "Techniques for processing and understanding human language, "
-                    "including text classification, entity recognition and generation."@en ;
+    skos:definition "Techniques for processing and understanding human language, including text classification, entity recognition and generation."@en ;
     skos:broader stf:DataScience .
 
 stf:ArtificialIntelligence a skos:Concept ;
@@ -262,24 +241,21 @@ stf:ArtificialIntelligence a skos:Concept ;
     skos:prefLabel "Artificial Intelligence"@en ;
     skos:altLabel "AI"@en ;
     skos:notation "ArtificialIntelligence" ;
-    skos:definition "Broad discipline encompassing machine learning, knowledge "
-                    "representation, planning and generative AI systems."@en ;
+    skos:definition "Broad discipline encompassing machine learning, knowledge representation, planning and generative AI systems."@en ;
     skos:broader stf:DataScience .
 
 stf:PyTorch a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "PyTorch"@en ;
     skos:notation "PyTorch" ;
-    skos:definition "Open-source deep learning framework developed by Meta, widely "
-                    "used for research and production ML models."@en ;
+    skos:definition "Open-source deep learning framework developed by Meta, widely used for research and production ML models."@en ;
     skos:broader stf:MachineLearning .
 
 stf:TensorFlow a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "TensorFlow"@en ;
     skos:notation "TensorFlow" ;
-    skos:definition "Open-source deep learning framework developed by Google, used "
-                    "for large-scale model training and deployment."@en ;
+    skos:definition "Open-source deep learning framework developed by Google, used for large-scale model training and deployment."@en ;
     skos:broader stf:MachineLearning .
 
 # =============================================================================
@@ -290,8 +266,7 @@ stf:Java a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "Java"@en ;
     skos:notation "Java" ;
-    skos:definition "Object-oriented programming language widely used for enterprise "
-                    "backend services and APIs."@en ;
+    skos:definition "Object-oriented programming language widely used for enterprise backend services and APIs."@en ;
     skos:broader stf:SoftwareDevelopment .
 
 stf:React a skos:Concept ;
@@ -299,8 +274,7 @@ stf:React a skos:Concept ;
     skos:prefLabel "React"@en ;
     skos:altLabel "React.js"@en ;
     skos:notation "React" ;
-    skos:definition "JavaScript library for building component-based user interfaces, "
-                    "developed by Meta."@en ;
+    skos:definition "JavaScript library for building component-based user interfaces, developed by Meta."@en ;
     skos:broader stf:SoftwareDevelopment .
 
 stf:TypeScript a skos:Concept ;
@@ -308,8 +282,7 @@ stf:TypeScript a skos:Concept ;
     skos:prefLabel "TypeScript"@en ;
     skos:altLabel "TS"@en ;
     skos:notation "TypeScript" ;
-    skos:definition "Strongly-typed superset of JavaScript commonly used with React "
-                    "and Node.js for large-scale web applications."@en ;
+    skos:definition "Strongly-typed superset of JavaScript commonly used with React and Node.js for large-scale web applications."@en ;
     skos:broader stf:SoftwareDevelopment .
 
 stf:Microservices a skos:Concept ;
@@ -317,8 +290,7 @@ stf:Microservices a skos:Concept ;
     skos:prefLabel "Microservices Architecture"@en ;
     skos:altLabel "Microservices"@en ;
     skos:notation "Microservices" ;
-    skos:definition "Architectural style of building applications as suites of small, "
-                    "independently deployable services communicating over APIs."@en ;
+    skos:definition "Architectural style of building applications as suites of small, independently deployable services communicating over APIs."@en ;
     skos:broader stf:SoftwareDevelopment .
 
 # =============================================================================
@@ -330,8 +302,7 @@ stf:StrategyConsulting a skos:Concept ;
     skos:prefLabel "Strategy Consulting"@en ;
     skos:altLabel "Strategy"@en ;
     skos:notation "StrategyConsulting" ;
-    skos:definition "Advising organisations on long-term direction, competitive "
-                    "positioning, market entry, and operating model design."@en ;
+    skos:definition "Advising organisations on long-term direction, competitive positioning, market entry, and operating model design."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:ChangeManagement a skos:Concept ;
@@ -339,8 +310,7 @@ stf:ChangeManagement a skos:Concept ;
     skos:prefLabel "Change Management"@en ;
     skos:altLabel "OCM"@en ;
     skos:notation "ChangeManagement" ;
-    skos:definition "Structured approach to transitioning individuals, teams and "
-                    "organisations from a current state to a desired future state."@en ;
+    skos:definition "Structured approach to transitioning individuals, teams and organisations from a current state to a desired future state."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:PMO a skos:Concept ;
@@ -348,8 +318,7 @@ stf:PMO a skos:Concept ;
     skos:prefLabel "Project Management Office"@en ;
     skos:altLabel "PMO"@en ;
     skos:notation "PMO" ;
-    skos:definition "Governance function responsible for defining project management "
-                    "standards, status reporting, and portfolio tracking."@en ;
+    skos:definition "Governance function responsible for defining project management standards, status reporting, and portfolio tracking."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:BusinessAnalysis a skos:Concept ;
@@ -357,8 +326,7 @@ stf:BusinessAnalysis a skos:Concept ;
     skos:prefLabel "Business Analysis"@en ;
     skos:altLabel "BA"@en ;
     skos:notation "BusinessAnalysis" ;
-    skos:definition "Identifying business needs and determining solutions, typically "
-                    "through requirements gathering and process mapping."@en ;
+    skos:definition "Identifying business needs and determining solutions, typically through requirements gathering and process mapping."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:ProcessImprovement a skos:Concept ;
@@ -367,8 +335,7 @@ stf:ProcessImprovement a skos:Concept ;
     skos:altLabel "Lean Six Sigma"@en ;
     skos:altLabel "Lean"@en ;
     skos:notation "ProcessImprovement" ;
-    skos:definition "Systematic approach to enhancing operational efficiency and "
-                    "quality through Lean, Six Sigma, and related methodologies."@en ;
+    skos:definition "Systematic approach to enhancing operational efficiency and quality through Lean, Six Sigma, and related methodologies."@en ;
     skos:broader stf:FunctionalSkills .
 
 # =============================================================================
@@ -380,24 +347,21 @@ stf:TeamLeadership a skos:Concept ;
     skos:prefLabel "Team Leadership"@en ;
     skos:altLabel "Team Lead"@en ;
     skos:notation "TeamLeadership" ;
-    skos:definition "The ability to motivate, guide and develop a team of consultants "
-                    "towards a shared delivery objective."@en ;
+    skos:definition "The ability to motivate, guide and develop a team of consultants towards a shared delivery objective."@en ;
     skos:broader stf:LeadershipSkills .
 
 stf:StakeholderManagement a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "Stakeholder Management"@en ;
     skos:notation "StakeholderManagement" ;
-    skos:definition "Identifying, engaging and managing the expectations of project "
-                    "stakeholders at all levels of seniority."@en ;
+    skos:definition "Identifying, engaging and managing the expectations of project stakeholders at all levels of seniority."@en ;
     skos:broader stf:LeadershipSkills .
 
 stf:ExecutivePresence a skos:Concept ;
     skos:inScheme stf:SkillScheme ;
     skos:prefLabel "Executive Presence"@en ;
     skos:notation "ExecutivePresence" ;
-    skos:definition "The combination of gravitas, communication skill and appearance "
-                    "that conveys confidence and credibility to senior audiences."@en ;
+    skos:definition "The combination of gravitas, communication skill and appearance that conveys confidence and credibility to senior audiences."@en ;
     skos:broader stf:LeadershipSkills .
 
 stf:ClientRelationships a skos:Concept ;
@@ -405,8 +369,7 @@ stf:ClientRelationships a skos:Concept ;
     skos:prefLabel "Client Relationships"@en ;
     skos:altLabel "Client Management"@en ;
     skos:notation "ClientRelationships" ;
-    skos:definition "The ability to develop trusted, long-term relationships with "
-                    "client executives and decision-makers."@en ;
+    skos:definition "The ability to develop trusted, long-term relationships with client executives and decision-makers."@en ;
     skos:broader stf:LeadershipSkills .
 
 # Role label aliases (skos:altLabel on role-name concepts)
@@ -417,8 +380,7 @@ stf:ProjectManager a skos:Concept ;
     skos:altLabel "Proj Mgr"@en ;
     skos:altLabel "Project Manager"@en ;
     skos:notation "ProjectManager" ;
-    skos:definition "A role responsible for end-to-end project planning, tracking, "
-                    "risk management and delivery governance."@en ;
+    skos:definition "A role responsible for end-to-end project planning, tracking, risk management and delivery governance."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:SeniorConsultant a skos:Concept ;
@@ -427,8 +389,7 @@ stf:SeniorConsultant a skos:Concept ;
     skos:altLabel "SC"@en ;
     skos:altLabel "Sr. Consultant"@en ;
     skos:notation "SeniorConsultant" ;
-    skos:definition "A mid-senior consulting role with deep expertise in one or more "
-                    "competency areas and the ability to lead workstreams."@en ;
+    skos:definition "A mid-senior consulting role with deep expertise in one or more competency areas and the ability to lead workstreams."@en ;
     skos:broader stf:FunctionalSkills .
 
 stf:DataEngineer a skos:Concept ;
@@ -437,8 +398,7 @@ stf:DataEngineer a skos:Concept ;
     skos:altLabel "DE"@en ;
     skos:altLabel "Data Eng"@en ;
     skos:notation "DataEngineer" ;
-    skos:definition "A technical role focused on building and maintaining data "
-                    "pipelines, warehouses and streaming infrastructure."@en ;
+    skos:definition "A technical role focused on building and maintaining data pipelines, warehouses and streaming infrastructure."@en ;
     skos:broader stf:DataEngineering .
 
 # =============================================================================
@@ -451,8 +411,7 @@ stf:FinancialServices a skos:Concept ;
     skos:altLabel "FinServ"@en ;
     skos:altLabel "FS"@en ;
     skos:notation "FinancialServices" ;
-    skos:definition "Domain expertise spanning banking, insurance, asset management, "
-                    "payments and capital markets."@en ;
+    skos:definition "Domain expertise spanning banking, insurance, asset management, payments and capital markets."@en ;
     skos:broader stf:DomainSkills ;
     skos:narrower stf:Banking ;
     skos:narrower stf:AssetManagement ;
@@ -464,8 +423,7 @@ stf:Healthcare a skos:Concept ;
     skos:prefLabel "Healthcare"@en ;
     skos:altLabel "Health"@en ;
     skos:notation "Healthcare" ;
-    skos:definition "Domain expertise in hospitals, payers, pharmaceuticals and "
-                    "health tech including clinical and operational knowledge."@en ;
+    skos:definition "Domain expertise in hospitals, payers, pharmaceuticals and health tech including clinical and operational knowledge."@en ;
     skos:broader stf:DomainSkills .
 
 stf:Energy a skos:Concept ;
@@ -473,8 +431,7 @@ stf:Energy a skos:Concept ;
     skos:prefLabel "Energy"@en ;
     skos:altLabel "Utilities"@en ;
     skos:notation "Energy" ;
-    skos:definition "Domain expertise in oil & gas, renewables, utilities, grid "
-                    "management and the energy transition."@en ;
+    skos:definition "Domain expertise in oil & gas, renewables, utilities, grid management and the energy transition."@en ;
     skos:broader stf:DomainSkills .
 
 stf:Retail a skos:Concept ;
@@ -482,8 +439,7 @@ stf:Retail a skos:Concept ;
     skos:prefLabel "Retail"@en ;
     skos:altLabel "Consumer Retail"@en ;
     skos:notation "Retail" ;
-    skos:definition "Domain expertise in consumer retail, e-commerce, supply chain "
-                    "and omnichannel customer experience."@en ;
+    skos:definition "Domain expertise in consumer retail, e-commerce, supply chain and omnichannel customer experience."@en ;
     skos:broader stf:DomainSkills .
 
 stf:Technology a skos:Concept ;
@@ -491,8 +447,7 @@ stf:Technology a skos:Concept ;
     skos:prefLabel "Technology"@en ;
     skos:altLabel "Tech Industry"@en ;
     skos:notation "Technology" ;
-    skos:definition "Domain expertise in technology companies, software vendors, "
-                    "platform businesses and digital-native organisations."@en ;
+    skos:definition "Domain expertise in technology companies, software vendors, platform businesses and digital-native organisations."@en ;
     skos:broader stf:DomainSkills .
 
 stf:Manufacturing a skos:Concept ;
@@ -500,8 +455,7 @@ stf:Manufacturing a skos:Concept ;
     skos:prefLabel "Manufacturing"@en ;
     skos:altLabel "Industrial"@en ;
     skos:notation "Manufacturing" ;
-    skos:definition "Domain expertise in discrete and process manufacturing, supply "
-                    "chain management, and Industry 4.0 initiatives."@en ;
+    skos:definition "Domain expertise in discrete and process manufacturing, supply chain management, and Industry 4.0 initiatives."@en ;
     skos:broader stf:DomainSkills .
 
 # =============================================================================
@@ -514,8 +468,7 @@ stf:Banking a skos:Concept ;
     skos:altLabel "Retail Banking"@en ;
     skos:altLabel "Corporate Banking"@en ;
     skos:notation "Banking" ;
-    skos:definition "Expertise in retail banking, corporate banking, and investment "
-                    "banking operations, products and regulation."@en ;
+    skos:definition "Expertise in retail banking, corporate banking, and investment banking operations, products and regulation."@en ;
     skos:broader stf:FinancialServices .
 
 stf:AssetManagement a skos:Concept ;
@@ -524,8 +477,7 @@ stf:AssetManagement a skos:Concept ;
     skos:altLabel "Investment Management"@en ;
     skos:altLabel "Buy Side"@en ;
     skos:notation "AssetManagement" ;
-    skos:definition "Expertise in portfolio management, fund operations, "
-                    "performance reporting and investment compliance."@en ;
+    skos:definition "Expertise in portfolio management, fund operations, performance reporting and investment compliance."@en ;
     skos:broader stf:FinancialServices .
 
 stf:Insurance a skos:Concept ;
@@ -533,8 +485,7 @@ stf:Insurance a skos:Concept ;
     skos:prefLabel "Insurance"@en ;
     skos:altLabel "P&C"@en ;
     skos:notation "Insurance" ;
-    skos:definition "Expertise in property & casualty, life and health insurance "
-                    "products, underwriting and claims operations."@en ;
+    skos:definition "Expertise in property & casualty, life and health insurance products, underwriting and claims operations."@en ;
     skos:broader stf:FinancialServices .
 
 stf:Payments a skos:Concept ;
@@ -542,6 +493,106 @@ stf:Payments a skos:Concept ;
     skos:prefLabel "Payments"@en ;
     skos:altLabel "FinTech Payments"@en ;
     skos:notation "Payments" ;
-    skos:definition "Expertise in payment rails, card schemes, open banking, "
-                    "instant payments and payment technology platforms."@en ;
+    skos:definition "Expertise in payment rails, card schemes, open banking, instant payments and payment technology platforms."@en ;
     skos:broader stf:FinancialServices .
+
+# =============================================================================
+# ROLE SCHEME — normalised role archetypes with abbreviation resolution
+# Used by the recommendation agent (role-fit scoring) and the chat agent
+# (NL abbreviation disambiguation, e.g. "BA" -> business_analyst).
+# =============================================================================
+
+stf:RoleScheme a skos:ConceptScheme ;
+    dc:title "Enterprise Staffing Role Taxonomy" ;
+    dc:description "Controlled vocabulary of role archetypes used as a scoring factor and for natural-language role disambiguation." ;
+    skos:prefLabel "Role Taxonomy"@en ;
+    skos:hasTopConcept stf:RoleEngineer ;
+    skos:hasTopConcept stf:RoleManager ;
+    skos:hasTopConcept stf:RoleAssociate ;
+    skos:hasTopConcept stf:RoleBusinessAnalyst ;
+    skos:hasTopConcept stf:RoleExpert ;
+    skos:hasTopConcept stf:RoleDesigner ;
+    skos:hasTopConcept stf:RoleConsultant ;
+    skos:hasTopConcept stf:RoleArchitect ;
+    skos:hasTopConcept stf:RoleLead ;
+    skos:hasTopConcept stf:RoleAnalyst ;
+    skos:hasTopConcept stf:RoleSpecialist .
+
+stf:RoleEngineer a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Engineer"@en ;
+    skos:altLabel "Developer"@en ; skos:altLabel "Dev"@en ; skos:altLabel "SWE"@en ;
+    skos:altLabel "Software Engineer"@en ; skos:altLabel "Data Engineer"@en ; skos:altLabel "DE"@en ;
+    skos:notation "engineer" ;
+    skos:definition "Builds and operates software, data and platform systems."@en .
+
+stf:RoleManager a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Manager"@en ;
+    skos:altLabel "Mgr"@en ; skos:altLabel "Engagement Manager"@en ; skos:altLabel "Project Manager"@en ;
+    skos:altLabel "PM"@en ;
+    skos:notation "manager" ;
+    skos:definition "Leads delivery, people and client accounts."@en .
+
+stf:RoleAssociate a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Associate"@en ;
+    skos:altLabel "Assoc"@en ;
+    skos:notation "associate" ;
+    skos:definition "Early-career delivery contributor."@en .
+
+stf:RoleBusinessAnalyst a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Business Analyst"@en ;
+    skos:altLabel "BA"@en ; skos:altLabel "Biz Analyst"@en ;
+    skos:notation "business_analyst" ;
+    skos:definition "Elicits requirements and bridges business and delivery."@en .
+
+stf:RoleExpert a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Expert"@en ;
+    skos:altLabel "SME"@en ; skos:altLabel "Subject Matter Expert"@en ; skos:altLabel "Principal"@en ;
+    skos:notation "expert" ;
+    skos:definition "Deep subject-matter authority in a domain or technology."@en .
+
+stf:RoleDesigner a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Designer"@en ;
+    skos:altLabel "UX"@en ; skos:altLabel "UI Designer"@en ; skos:altLabel "Product Designer"@en ;
+    skos:notation "designer" ;
+    skos:definition "Designs user experience, interfaces and service journeys."@en .
+
+stf:RoleConsultant a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Consultant"@en ;
+    skos:altLabel "Advisor"@en ; skos:altLabel "SC"@en ; skos:altLabel "Senior Consultant"@en ;
+    skos:notation "consultant" ;
+    skos:definition "Advisory delivery across strategy and transformation."@en .
+
+stf:RoleArchitect a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Architect"@en ;
+    skos:altLabel "Solution Architect"@en ; skos:altLabel "SA"@en ; skos:altLabel "Tech Architect"@en ;
+    skos:notation "architect" ;
+    skos:definition "Designs system, solution and enterprise architecture."@en .
+
+stf:RoleLead a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Lead"@en ;
+    skos:altLabel "Team Lead"@en ; skos:altLabel "Tech Lead"@en ; skos:altLabel "Delivery Lead"@en ;
+    skos:notation "lead" ;
+    skos:definition "Leads a workstream or squad day-to-day."@en .
+
+stf:RoleAnalyst a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Analyst"@en ;
+    skos:altLabel "Data Analyst"@en ; skos:altLabel "Research Analyst"@en ;
+    skos:notation "analyst" ;
+    skos:definition "Performs analysis, reporting and insight generation."@en .
+
+stf:RoleSpecialist a skos:Concept ;
+    skos:inScheme stf:RoleScheme ; skos:topConceptOf stf:RoleScheme ;
+    skos:prefLabel "Specialist"@en ;
+    skos:altLabel "Specialised Role"@en ;
+    skos:notation "specialist" ;
+    skos:definition "Focused specialist contributor in a narrow capability."@en .

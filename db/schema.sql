@@ -19,6 +19,11 @@ CREATE TABLE person (
     name                        TEXT        NOT NULL,
     email                       TEXT        NOT NULL UNIQUE,
     role                        TEXT        NOT NULL,
+    role_category               TEXT        CHECK (role_category IN (
+                                    'engineer', 'manager', 'associate', 'business_analyst',
+                                    'expert', 'designer', 'consultant', 'architect',
+                                    'lead', 'analyst', 'specialist'
+                                )),
     band                        TEXT        NOT NULL CHECK (band IN (
                                     'Analyst', 'Consultant', 'Senior Consultant',
                                     'Manager', 'Senior Manager', 'Director', 'Partner'
@@ -200,6 +205,11 @@ CREATE TABLE opportunity (
     id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id         UUID    NOT NULL REFERENCES team(id) ON DELETE CASCADE,
     role_title      TEXT    NOT NULL,
+    role_category   TEXT    CHECK (role_category IN (
+                        'engineer', 'manager', 'associate', 'business_analyst',
+                        'expert', 'designer', 'consultant', 'architect',
+                        'lead', 'analyst', 'specialist'
+                    )),
     description     TEXT,
     band_required   TEXT    NOT NULL CHECK (band_required IN (
                         'Analyst', 'Consultant', 'Senior Consultant',
@@ -216,6 +226,8 @@ CREATE TABLE opportunity (
 
 COMMENT ON TABLE opportunity IS
   'An open staffing slot within a team. Maps to stf:Opportunity (gUFO:RoleMixin). Demand-side of the staffing relator.';
+COMMENT ON COLUMN opportunity.role_category IS
+  'Normalised role archetype used by the recommendation agent as a scoring factor: engineer, manager, associate, business_analyst, expert, designer, consultant, architect, lead, analyst, specialist. Maps to the stf:RoleScheme SKOS taxonomy.';
 
 -- ---------------------------------------------------------------------------
 -- Table: opportunity_skill
@@ -254,6 +266,69 @@ CREATE TABLE opportunity_qualification (
 
 COMMENT ON TABLE opportunity_qualification IS
   'Academic qualifications required for an opportunity. is_mandatory=true enforces hard requirement.';
+
+-- ---------------------------------------------------------------------------
+-- Table: opportunity_certification
+-- Certifications required for an opportunity (closes the SHACL stf:requiresCertification reference)
+-- ---------------------------------------------------------------------------
+CREATE TABLE opportunity_certification (
+    id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    opportunity_id  UUID    NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
+    cert_name       TEXT    NOT NULL,
+    is_mandatory    BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE opportunity_certification IS
+  'Certifications required for an opportunity. is_mandatory=true is enforced by SHACL CertificationValidityShape (stf:requiresCertification / stf:certRequirementMandatory).';
+
+-- ---------------------------------------------------------------------------
+-- Table: opportunity_language
+-- Language requirements for an opportunity
+-- ---------------------------------------------------------------------------
+CREATE TABLE opportunity_language (
+    id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    opportunity_id  UUID    NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
+    language_code   TEXT    NOT NULL,   -- IETF BCP 47 tag, matches person_language.language_code
+    min_proficiency TEXT    NOT NULL DEFAULT 'professional' CHECK (min_proficiency IN (
+                        'native', 'fluent', 'professional', 'basic'
+                    )),
+    is_mandatory    BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE opportunity_language IS
+  'Language requirements for an opportunity (used only when a language is specified). Matched against person_language by the recommendation agent.';
+
+-- ---------------------------------------------------------------------------
+-- Table: person_citizenship
+-- Citizenships / nationalities held by a person (supports dual citizenship)
+-- ---------------------------------------------------------------------------
+CREATE TABLE person_citizenship (
+    id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id       UUID    NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+    country_code    TEXT    NOT NULL,   -- ISO 3166-1 alpha-2 (e.g. 'GB', 'US', 'SG', 'IN', 'DE', 'AU')
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (person_id, country_code)
+);
+
+COMMENT ON TABLE person_citizenship IS
+  'Citizenships held by a person (ISO 3166-1 alpha-2). Supports dual citizenship. Used for citizenship-gated staffing (e.g. government / cleared work).';
+
+-- ---------------------------------------------------------------------------
+-- Table: opportunity_citizenship
+-- Citizenship requirements for an opportunity (used only when specified)
+-- ---------------------------------------------------------------------------
+CREATE TABLE opportunity_citizenship (
+    id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    opportunity_id  UUID    NOT NULL REFERENCES opportunity(id) ON DELETE CASCADE,
+    country_code    TEXT    NOT NULL,   -- ISO 3166-1 alpha-2
+    is_mandatory    BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE opportunity_citizenship IS
+  'Citizenship requirements for an opportunity. When present and mandatory, a candidate must hold at least one matching citizenship. A hard gate in the recommendation scorer.';
 
 -- ---------------------------------------------------------------------------
 -- Table: assignment
@@ -434,6 +509,19 @@ CREATE INDEX idx_oppskill_name      ON opportunity_skill(skill_name);
 
 -- opportunity_qualification
 CREATE INDEX idx_oppqual_opp_id     ON opportunity_qualification(opportunity_id);
+
+-- opportunity_certification / language / citizenship
+CREATE INDEX idx_oppcert_opp_id     ON opportunity_certification(opportunity_id);
+CREATE INDEX idx_opplang_opp_id     ON opportunity_language(opportunity_id);
+CREATE INDEX idx_oppcit_opp_id      ON opportunity_citizenship(opportunity_id);
+
+-- person_citizenship
+CREATE INDEX idx_pcit_person_id     ON person_citizenship(person_id);
+CREATE INDEX idx_pcit_country       ON person_citizenship(country_code);
+
+-- person / opportunity role_category
+CREATE INDEX idx_person_role_cat    ON person(role_category);
+CREATE INDEX idx_opp_role_cat       ON opportunity(role_category);
 
 -- assignment
 CREATE INDEX idx_assign_opp_id      ON assignment(opportunity_id);

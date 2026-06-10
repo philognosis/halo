@@ -15,9 +15,7 @@
 <http://enterprise.org/staffing/shapes> a owl:Ontology ;
     owl:imports <http://enterprise.org/staffing/> ;
     dc:title "Enterprise Staffing SHACL Shapes" ;
-    dc:description "SHACL shapes that enforce business rules on the staffing ontology "
-                   "ABox. Evaluated by Apache Jena SHACL processor against the "
-                   "staffing named graph." .
+    dc:description "SHACL shapes that enforce business rules on the staffing ontology ABox. Evaluated by Apache Jena SHACL processor against the staffing named graph." .
 
 # =============================================================================
 # Shape 1: PersonShape
@@ -77,8 +75,7 @@ stf:PersonShape a sh:NodeShape ;
 stf:ProjectTeamStructuralShape a sh:NodeShape ;
     sh:targetClass stf:ProjectTeam ;
     rdfs:label "Project Team Structural Shape" ;
-    rdfs:comment "Prevents a single-person 'team' by requiring at least two "
-                 "stf:hasStaffedSeat links." ;
+    rdfs:comment "Prevents a single-person 'team' by requiring at least two stf:hasStaffedSeat links." ;
 
     sh:property [
         sh:path stf:hasStaffedSeat ;
@@ -96,8 +93,7 @@ stf:ProjectTeamStructuralShape a sh:NodeShape ;
 stf:EmployeeDoubleAllocationShape a sh:NodeShape ;
     sh:targetClass stf:Employee ;
     rdfs:label "Employee Double Allocation Shape" ;
-    rdfs:comment "SPARQL-based constraint that detects date-overlapping active "
-                 "allocations for the same Employee." ;
+    rdfs:comment "SPARQL-based constraint that detects date-overlapping active allocations for the same Employee." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -171,9 +167,7 @@ stf:AllocationDateShape a sh:NodeShape ;
 stf:OpportunityBandShape a sh:NodeShape ;
     sh:targetClass stf:ProjectAllocation ;
     rdfs:label "Opportunity Band Shape" ;
-    rdfs:comment "Checks that the staffed Employee's band is >= the band required by the Opportunity. "
-                 "Band hierarchy (ascending): Analyst < Consultant < Senior Consultant < Manager "
-                 "< Senior Manager < Director < Partner. A higher band CAN fill a lower requirement." ;
+    rdfs:comment "Checks that the staffed Employee's band is >= the band required by the Opportunity. Band hierarchy (ascending): Analyst < Consultant < Senior Consultant < Manager < Senior Manager < Director < Partner. A higher band CAN fill a lower requirement." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -231,9 +225,7 @@ stf:OpportunityBandShape a sh:NodeShape ;
 stf:CertificationValidityShape a sh:NodeShape ;
     sh:targetClass stf:ProjectAllocation ;
     rdfs:label "Certification Validity Shape" ;
-    rdfs:comment "SPARQL constraint: if an Opportunity has a mandatory certification "
-                 "requirement, the allocated Employee must possess a matching, "
-                 "non-expired certification." ;
+    rdfs:comment "SPARQL constraint: if an Opportunity has a mandatory certification requirement, the allocated Employee must possess a matching, non-expired certification." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -332,10 +324,7 @@ stf:AssignmentStatusShape a sh:NodeShape ;
 stf:OnLeaveBlockShape a sh:NodeShape ;
     sh:targetClass stf:ProjectAllocation ;
     rdfs:label "On Leave Block Shape" ;
-    rdfs:comment "Blocks creation of a ProjectAllocation when the allocated Employee "
-                 "is currently in the OnLeave availability phase. Enforces the "
-                 "gUFO phase constraint at the semantic layer (the Postgres trigger "
-                 "fn_block_unavailable_assignment enforces the same rule at DB layer)." ;
+    rdfs:comment "Blocks creation of a ProjectAllocation when the allocated Employee is currently in the OnLeave availability phase. Enforces the gUFO phase constraint at the semantic layer (the Postgres trigger fn_block_unavailable_assignment enforces the same rule at DB layer)." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -371,9 +360,7 @@ stf:OnLeaveBlockShape a sh:NodeShape ;
 stf:TotalAllocationCapShape a sh:NodeShape ;
     sh:targetClass stf:Employee ;
     rdfs:label "Total Allocation Cap Shape" ;
-    rdfs:comment "SPARQL constraint: the sum of allocationPct across all active "
-                 "ProjectAllocations for an Employee must not exceed 100. "
-                 "Prevents silent overcommitment that Jena could otherwise accept." ;
+    rdfs:comment "SPARQL constraint: the sum of allocationPct across all active ProjectAllocations for an Employee must not exceed 100. Prevents silent overcommitment that Jena could otherwise accept." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -443,9 +430,7 @@ stf:OpportunityOpenShape a sh:NodeShape ;
 stf:PartialAvailabilityWarningShape a sh:NodeShape ;
     sh:targetClass stf:ProjectAllocation ;
     rdfs:label "Partial Availability Warning Shape" ;
-    rdfs:comment "Pre-flight WARNING (not a block): alerts when an Employee being "
-                 "shortlisted is already PartiallyAllocated. Does not prevent "
-                 "shortlisting but surfaces in the UI for the approver's attention." ;
+    rdfs:comment "Pre-flight WARNING (not a block): alerts when an Employee being shortlisted is already PartiallyAllocated. Does not prevent shortlisting but surfaces in the UI for the approver's attention." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -484,8 +469,7 @@ stf:PartialAvailabilityWarningShape a sh:NodeShape ;
 stf:CertExpiryWarningShape a sh:NodeShape ;
     sh:targetClass stf:ProjectAllocation ;
     rdfs:label "Certification Expiry Warning Shape" ;
-    rdfs:comment "Pre-flight WARNING: fires when a required certification will expire "
-                 "before the allocation end date. Does not block, but prompts HITL review." ;
+    rdfs:comment "Pre-flight WARNING: fires when a required certification will expire before the allocation end date. Does not block, but prompts HITL review." ;
 
     sh:sparql [
         a sh:SPARQLConstraint ;

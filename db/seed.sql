@@ -310,3 +310,106 @@ INSERT INTO prov_log (id, entity_type, entity_id, action, actor_id, timestamp, p
  '2026-02-15 10:00:00+00',
  '{"opportunity_id":"h1000000-0000-0000-0000-000000000006","person_id":"a1000000-0000-0000-0000-000000000005","status":"cancelled"}'::jsonb,
  'Opportunity h6 cancelled by client; GlobalMart deferred frontend work to Q3 2026.');
+
+-- =============================================================================
+-- PHASE 3 ADDITIONS — role categories, languages, citizenship, richer requirements
+-- =============================================================================
+
+-- ----- Person role_category (normalised role archetype) ---------------------
+UPDATE person SET role_category = 'consultant' WHERE id = 'a1000000-0000-0000-0000-000000000001'; -- Amelia (Partner, advisory)
+UPDATE person SET role_category = 'lead'       WHERE id = 'a1000000-0000-0000-0000-000000000002'; -- Thomas (delivery lead)
+UPDATE person SET role_category = 'manager'    WHERE id = 'a1000000-0000-0000-0000-000000000003'; -- Priya
+UPDATE person SET role_category = 'engineer'   WHERE id = 'a1000000-0000-0000-0000-000000000004'; -- Luca (full-stack)
+UPDATE person SET role_category = 'analyst'    WHERE id = 'a1000000-0000-0000-0000-000000000005'; -- Sophie
+UPDATE person SET role_category = 'consultant' WHERE id = 'a1000000-0000-0000-0000-000000000006'; -- James (Director, strategy)
+UPDATE person SET role_category = 'engineer'   WHERE id = 'a1000000-0000-0000-0000-000000000007'; -- Maria (ML)
+UPDATE person SET role_category = 'analyst'    WHERE id = 'a1000000-0000-0000-0000-000000000008'; -- Derek
+UPDATE person SET role_category = 'manager'    WHERE id = 'a1000000-0000-0000-0000-000000000009'; -- Kavya
+UPDATE person SET role_category = 'engineer'   WHERE id = 'a1000000-0000-0000-0000-000000000010'; -- Rajan (data eng)
+UPDATE person SET role_category = 'designer'   WHERE id = 'a1000000-0000-0000-0000-000000000011'; -- Olivia (UX)
+UPDATE person SET role_category = 'analyst'    WHERE id = 'a1000000-0000-0000-0000-000000000012'; -- Wei
+
+-- ----- Opportunity role_category --------------------------------------------
+UPDATE opportunity SET role_category = 'engineer'         WHERE id = 'h1000000-0000-0000-0000-000000000001'; -- Senior Data Engineer
+UPDATE opportunity SET role_category = 'engineer'         WHERE id = 'h1000000-0000-0000-0000-000000000002'; -- Java Backend Engineer
+UPDATE opportunity SET role_category = 'architect'        WHERE id = 'h1000000-0000-0000-0000-000000000003'; -- Cloud Solutions Architect
+UPDATE opportunity SET role_category = 'analyst'          WHERE id = 'h1000000-0000-0000-0000-000000000004'; -- Data Analyst
+UPDATE opportunity SET role_category = 'manager'          WHERE id = 'h1000000-0000-0000-0000-000000000005'; -- Strategy Manager
+UPDATE opportunity SET role_category = 'engineer'         WHERE id = 'h1000000-0000-0000-0000-000000000006'; -- React Developer (cancelled)
+UPDATE opportunity SET role_category = 'engineer'         WHERE id = 'h1000000-0000-0000-0000-000000000007'; -- React Developer (open)
+
+-- ----- Back-fill opportunity_skill.skill_id (SKOS notation for SPARQL match) -
+UPDATE opportunity_skill SET skill_id = CASE skill_name
+    WHEN 'Apache Spark'        THEN 'Spark'
+    WHEN 'SQL'                 THEN 'SQL'
+    WHEN 'Python'              THEN 'Python'
+    WHEN 'Financial Services'  THEN 'FinancialServices'
+    WHEN 'Java'                THEN 'Java'
+    WHEN 'React'               THEN 'React'
+    WHEN 'AWS'                 THEN 'AWS'
+    WHEN 'Healthcare'          THEN 'Healthcare'
+    WHEN 'Change Management'   THEN 'ChangeManagement'
+    WHEN 'Strategy Consulting' THEN 'StrategyConsulting'
+    WHEN 'Retail'              THEN 'Retail'
+    WHEN 'TypeScript'          THEN 'TypeScript'
+    ELSE skill_id
+END
+WHERE skill_id IS NULL;
+
+-- ----- Person languages (gUFO:IntrinsicMode) --------------------------------
+INSERT INTO person_language (id, person_id, language_code, language_name, proficiency) VALUES
+('n1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'en', 'English', 'native'),
+('n1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 'de', 'German',  'native'),
+('n1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000002', 'en', 'English', 'fluent'),
+('n1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000003', 'en', 'English', 'fluent'),
+('n1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000003', 'hi', 'Hindi',   'native'),
+('n1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-000000000004', 'it', 'Italian', 'native'),
+('n1000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-000000000004', 'en', 'English', 'professional'),
+('n1000000-0000-0000-0000-000000000008', 'a1000000-0000-0000-0000-000000000005', 'de', 'German',  'native'),
+('n1000000-0000-0000-0000-000000000009', 'a1000000-0000-0000-0000-000000000005', 'en', 'English', 'professional'),
+('n1000000-0000-0000-0000-000000000010', 'a1000000-0000-0000-0000-000000000006', 'en', 'English', 'native'),
+('n1000000-0000-0000-0000-000000000011', 'a1000000-0000-0000-0000-000000000007', 'en', 'English', 'native'),
+('n1000000-0000-0000-0000-000000000012', 'a1000000-0000-0000-0000-000000000007', 'es', 'Spanish', 'native'),
+('n1000000-0000-0000-0000-000000000013', 'a1000000-0000-0000-0000-000000000008', 'en', 'English', 'native'),
+('n1000000-0000-0000-0000-000000000014', 'a1000000-0000-0000-0000-000000000008', 'zh', 'Mandarin','fluent'),
+('n1000000-0000-0000-0000-000000000015', 'a1000000-0000-0000-0000-000000000009', 'en', 'English', 'fluent'),
+('n1000000-0000-0000-0000-000000000016', 'a1000000-0000-0000-0000-000000000010', 'en', 'English', 'fluent'),
+('n1000000-0000-0000-0000-000000000017', 'a1000000-0000-0000-0000-000000000010', 'hi', 'Hindi',   'native'),
+('n1000000-0000-0000-0000-000000000018', 'a1000000-0000-0000-0000-000000000011', 'en', 'English', 'native'),
+('n1000000-0000-0000-0000-000000000019', 'a1000000-0000-0000-0000-000000000012', 'en', 'English', 'professional'),
+('n1000000-0000-0000-0000-000000000020', 'a1000000-0000-0000-0000-000000000012', 'zh', 'Mandarin','native');
+
+-- ----- Person citizenship (ISO 3166-1 alpha-2) ------------------------------
+INSERT INTO person_citizenship (id, person_id, country_code) VALUES
+('o1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'GB'),
+('o1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 'DE'),
+('o1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 'GB'),
+('o1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000003', 'IN'),  -- dual
+('o1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000004', 'IT'),
+('o1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-000000000005', 'DE'),
+('o1000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-000000000006', 'US'),
+('o1000000-0000-0000-0000-000000000008', 'a1000000-0000-0000-0000-000000000007', 'US'),
+('o1000000-0000-0000-0000-000000000009', 'a1000000-0000-0000-0000-000000000008', 'US'),
+('o1000000-0000-0000-0000-000000000010', 'a1000000-0000-0000-0000-000000000009', 'SG'),
+('o1000000-0000-0000-0000-000000000011', 'a1000000-0000-0000-0000-000000000010', 'IN'),
+('o1000000-0000-0000-0000-000000000012', 'a1000000-0000-0000-0000-000000000011', 'AU'),
+('o1000000-0000-0000-0000-000000000013', 'a1000000-0000-0000-0000-000000000012', 'SG');
+
+-- ----- Opportunity certifications (mandatory cert requirements) --------------
+INSERT INTO opportunity_certification (id, opportunity_id, cert_name, is_mandatory) VALUES
+-- Cloud Solutions Architect mandates AWS Certified Solutions Architect
+('p1000000-0000-0000-0000-000000000001', 'h1000000-0000-0000-0000-000000000003', 'AWS Certified Solutions Architect', true),
+-- Strategy Manager — PMP nice-to-have
+('p1000000-0000-0000-0000-000000000002', 'h1000000-0000-0000-0000-000000000005', 'PMP', false);
+
+-- ----- Opportunity language requirements ------------------------------------
+INSERT INTO opportunity_language (id, opportunity_id, language_code, min_proficiency, is_mandatory) VALUES
+-- Strategy Manager on GlobalMart (APAC) — Mandarin nice-to-have
+('q1000000-0000-0000-0000-000000000001', 'h1000000-0000-0000-0000-000000000005', 'zh', 'professional', false),
+-- Data Analyst on MedCore (EMEA) — English mandatory
+('q1000000-0000-0000-0000-000000000002', 'h1000000-0000-0000-0000-000000000004', 'en', 'professional', true);
+
+-- ----- Opportunity citizenship requirements ---------------------------------
+INSERT INTO opportunity_citizenship (id, opportunity_id, country_code, is_mandatory) VALUES
+-- Data Analyst on MedCore (NHS public-sector) — UK citizenship preferred (not mandatory)
+('r1000000-0000-0000-0000-000000000001', 'h1000000-0000-0000-0000-000000000004', 'GB', false);
