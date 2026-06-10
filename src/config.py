@@ -41,5 +41,16 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "claude-sonnet-4-6"
     ANTHROPIC_API_KEY: str | None = None
 
+    # ABox sync loop (Postgres → Jena projection)
+    ABOX_SYNC_INTERVAL_SECONDS: int = 300
+
+    # FastAPI service
+    API_HOST: str = "0.0.0.0"
+    API_PORT: int = 8000
+
+    # SHACL / Ontology file paths (used by the ad-hoc validator)
+    SHACL_SHAPES_PATH: str = "/app/ontology/shacl-shapes.ttl"
+    ONTOLOGY_PATH: str = "/app/ontology/staffing-ontology.ttl"
+
 
 settings = Settings()

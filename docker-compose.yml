@@ -181,6 +181,33 @@ services:
       - staffing-net
 
   # ---------------------------------------------------------------------------
+  # API — FastAPI service (HITL signal relay, read models, SPARQL/SHACL bridge)
+  # ---------------------------------------------------------------------------
+  api:
+    build: ./
+    container_name: staffing-api
+    restart: unless-stopped
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fuseki:
+        condition: service_started
+      temporal:
+        condition: service_started
+    environment:
+      DATABASE_URL:    "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST:   "temporal:7233"
+      FUSEKI_ENDPOINT: "${FUSEKI_ENDPOINT:-http://fuseki:3030/staffing}"
+    volumes:
+      - ./src:/app/src
+      - ./ontology:/app/ontology
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
   # PgAdmin 4  — optional web UI (activate with: --profile tools)
   # ---------------------------------------------------------------------------
   pgadmin:
