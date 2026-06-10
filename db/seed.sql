@@ -137,11 +137,11 @@ INSERT INTO qualifications (id, person_id, degree, institution, field_of_study, 
 -- =============================================================================
 -- PROJECTS  (4 projects across industries)
 -- =============================================================================
-INSERT INTO project (id, unique_code, client, project_name, start_date, end_date, industry, sector, function, status) VALUES
-('e1000000-0000-0000-0000-000000000001', 'PROJ-FT-2025-001', 'NovaPay Financial',          'Core Banking Modernisation',         '2025-01-15', '2026-06-30', 'FinTech',     'Banking',     'Technology',       'active'),
-('e1000000-0000-0000-0000-000000000002', 'PROJ-HC-2025-002', 'MedCore NHS Trust',          'Digital Health Records Platform',    '2025-04-01', '2026-09-30', 'Healthcare',  'Public',      'Technology',       'active'),
-('e1000000-0000-0000-0000-000000000003', 'PROJ-EN-2024-003', 'GreenVolt Energy',           'Smart Grid Analytics Programme',     '2024-06-01', '2025-12-31', 'Energy',      'Utilities',   'Analytics',        'completed'),
-('e1000000-0000-0000-0000-000000000004', 'PROJ-RT-2026-004', 'GlobalMart Retail Group',    'Omnichannel Commerce Transformation','2026-03-01', '2027-02-28', 'Retail',      'Consumer',    'Strategy',         'active');
+INSERT INTO project (id, unique_code, client, project_name, start_date, end_date, industry, sector, function, region, status) VALUES
+('e1000000-0000-0000-0000-000000000001', 'PROJ-FT-2025-001', 'NovaPay Financial',          'Core Banking Modernisation',         '2025-01-15', '2026-06-30', 'FinTech',     'Banking',     'Technology',       'EMEA',     'active'),
+('e1000000-0000-0000-0000-000000000002', 'PROJ-HC-2025-002', 'MedCore NHS Trust',          'Digital Health Records Platform',    '2025-04-01', '2026-09-30', 'Healthcare',  'Public',      'Technology',       'EMEA',     'active'),
+('e1000000-0000-0000-0000-000000000003', 'PROJ-EN-2024-003', 'GreenVolt Energy',           'Smart Grid Analytics Programme',     '2024-06-01', '2025-12-31', 'Energy',      'Utilities',   'Analytics',        'Americas', 'completed'),
+('e1000000-0000-0000-0000-000000000004', 'PROJ-RT-2026-004', 'GlobalMart Retail Group',    'Omnichannel Commerce Transformation','2026-03-01', '2027-02-28', 'Retail',      'Consumer',    'Strategy',         'APAC',     'active');
 
 -- =============================================================================
 -- LEADERSHIP

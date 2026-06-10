@@ -129,6 +129,7 @@ CREATE TABLE project (
     industry     TEXT    NOT NULL,
     sector       TEXT    NOT NULL,
     function     TEXT    NOT NULL,
+    region       TEXT    NOT NULL DEFAULT 'EMEA' CHECK (region IN ('EMEA', 'Americas', 'APAC')),
     status       TEXT    NOT NULL CHECK (status IN ('active', 'completed', 'on_hold', 'cancelled', 'pipeline')),
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -137,6 +138,8 @@ CREATE TABLE project (
 
 COMMENT ON TABLE project IS
   'Client engagement. Maps to stf:ClientEngagement (gUFO:Event). unique_code is a human-readable project reference.';
+COMMENT ON COLUMN project.region IS
+  'Primary delivery region of the engagement (EMEA | Americas | APAC). Drives default candidate-search locality in TeamStaffingWorkflow and the /candidates endpoint.';
 
 -- ---------------------------------------------------------------------------
 -- Table: staffing_history
@@ -401,6 +404,7 @@ CREATE INDEX idx_qual_level         ON qualifications(level);
 
 -- project
 CREATE INDEX idx_project_status     ON project(status);
+CREATE INDEX idx_project_region     ON project(region);
 CREATE INDEX idx_project_industry   ON project(industry);
 CREATE INDEX idx_project_client     ON project(client);
 CREATE INDEX idx_project_dates      ON project(start_date, end_date);

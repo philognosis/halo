@@ -54,6 +54,7 @@ class CreateProjectRequest(BaseModel):
     industry: str
     sector: str
     function: str
+    region: str = "EMEA"
     status: str = "active"
 
 

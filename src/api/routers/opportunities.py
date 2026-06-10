@@ -130,9 +130,10 @@ async def _fetch_opp_search_context(
     """Return required skills, band, and the project region for an opportunity."""
     opp = await conn.fetchrow(
         """
-        SELECT o.id::TEXT, o.band_required, t.project_id::TEXT
+        SELECT o.id::TEXT, o.band_required, t.project_id::TEXT, p.region
         FROM opportunity o
-        JOIN team t ON t.id = o.team_id
+        JOIN team t    ON t.id = o.team_id
+        JOIN project p ON p.id = t.project_id
         WHERE o.id = $1::UUID
         """,
         opportunity_id,
@@ -149,24 +150,12 @@ async def _fetch_opp_search_context(
     )
     required_skills = [r["skill_key"] for r in skill_rows if r["skill_key"]]
 
-    # The project table has no region column; derive region from the most
-    # common region of project leadership (best-effort), else None.
-    region = await conn.fetchval(
-        """
-        SELECT per.region
-        FROM leadership l
-        JOIN person per ON per.id = l.person_id
-        WHERE l.project_id = $1::UUID
-        GROUP BY per.region
-        ORDER BY COUNT(*) DESC
-        LIMIT 1
-        """,
-        opp["project_id"],
-    )
+    # Region comes authoritatively from the parent project (project.region),
+    # matching the worker's get_team_by_id join and TeamStaffingWorkflow.
     return {
         "band_required": opp["band_required"],
         "required_skills": required_skills,
-        "region": region,
+        "region": opp["region"],
     }
 
 

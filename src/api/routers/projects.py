@@ -103,8 +103,8 @@ async def create_project(
                 """
                 INSERT INTO project
                     (unique_code, client, project_name, start_date, end_date,
-                     industry, sector, function, status)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                     industry, sector, function, region, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING id::TEXT
                 """,
                 body.unique_code,
@@ -115,6 +115,7 @@ async def create_project(
                 body.industry,
                 body.sector,
                 body.function,
+                body.region,
                 body.status,
             )
         except asyncpg.UniqueViolationError as exc:
