@@ -5,16 +5,26 @@ Flow:
   1. Fetch team + open opportunities
   2. Mark domain event processed
   3. For each open opportunity:
-     a. Fetch opportunity details (skills, band, region)
-     b. SPARQL candidate search (with Postgres fallback)
-     c. Compose and send candidate recommendation to leadership
+     a. Run the agent recommender (agent_recommend_candidates) — deterministic,
+        auditable scoring. Postgres fallback only if the agent returns nothing.
+     b. Compose and send candidate recommendation to leadership (with scores).
+        Store recommended-candidate context keyed by opportunity_id so an
+        approval signal can shortlist with full info.
   4. Wait up to 7 days for approve/reject signals
-  5. For approved assignments: start AssignmentApprovalWorkflow as child
+  5. For each approval: call agent_shortlist_candidate to INSERT the assignment.
+     The DB trigger + pg_listener then start AssignmentApprovalWorkflow EXACTLY
+     ONCE (reconciliation fix #2 — we no longer start the child workflow here,
+     which previously double-started it).
   6. Return summary
 
 Signals:
-  - approve_candidate(assignment_id, approver_id)
-  - reject_candidate(assignment_id, reason)
+  - approve_candidate(opportunity_id, person_id, start_date, end_date,
+                      allocation_pct, approver_id)
+      Carries everything needed to shortlist the chosen candidate. (Changed from
+      the old assignment_id-based signature, which assumed an assignment already
+      existed — it did not, so the old child-workflow start was a no-op/duplicate
+      hazard.)
+  - reject_candidate(opportunity_id, person_id, reason)
 
 Queries:
   - get_status() → current workflow state dict
@@ -36,8 +46,10 @@ with workflow.unsafe.imports_passed_through():
         mark_domain_event_processed,
     )
     from src.activities.notification_activities import compose_candidate_recommendation
-    from src.activities.sparql_activities import search_candidates
-    from src.workflows.approval_workflow import AssignmentApprovalWorkflow
+    from src.agents.activities import (
+        agent_recommend_candidates,
+        agent_shortlist_candidate,
+    )
 
 # ---------------------------------------------------------------------------
 # Shared retry / timeout config
@@ -49,7 +61,7 @@ _ACTIVITY_RETRY = RetryPolicy(
     maximum_attempts=3,
 )
 _ACTIVITY_TIMEOUT = timedelta(seconds=30)
-_SPARQL_TIMEOUT = timedelta(seconds=20)
+_AGENT_TIMEOUT = timedelta(seconds=60)
 
 # Signal wait timeout: 7 days
 _SIGNAL_TIMEOUT = timedelta(days=7)
@@ -58,40 +70,74 @@ _SIGNAL_TIMEOUT = timedelta(days=7)
 @workflow.defn(name="TeamStaffingWorkflow")
 class TeamStaffingWorkflow:
     """
-    Durable workflow that searches for candidates for every open opportunity
-    in a newly created team, presents recommendations to leadership, then
-    orchestrates HITL approval via child workflows.
+    Durable workflow that recommends candidates for every open opportunity in a
+    newly created team, presents recommendations to leadership, then — on human
+    approval — shortlists the chosen candidate (which fires the DB trigger that
+    starts AssignmentApprovalWorkflow exactly once).
     """
 
     def __init__(self) -> None:
-        self._approved_assignments: list[dict[str, Any]] = []
-        self._rejected_assignments: list[dict[str, Any]] = []
+        self._approved: list[dict[str, Any]] = []
+        self._rejected: list[dict[str, Any]] = []
+        self._shortlisted: list[dict[str, Any]] = []
         self._pending_count: int = 0
         self._status: str = "initialising"
+        # Recommendation context per opportunity (defaults for shortlisting).
+        self._opp_context: dict[str, dict[str, Any]] = {}
 
     # ------------------------------------------------------------------
     # Signals
     # ------------------------------------------------------------------
     @workflow.signal
-    async def approve_candidate(self, assignment_id: str, approver_id: str) -> None:
+    async def approve_candidate(
+        self,
+        opportunity_id: str,
+        person_id: str,
+        start_date: str = "",
+        end_date: str = "",
+        allocation_pct: float = 100,
+        approver_id: str = "",
+    ) -> None:
+        """Approve a recommended candidate for an opportunity.
+
+        Carries enough info to shortlist directly. Dates fall back to the
+        opportunity's own dates (captured in recommendation context) when blank.
+        """
         workflow.logger.info(
-            "approve_candidate signal: assignment_id=%s approver_id=%s",
-            assignment_id,
+            "approve_candidate signal: opportunity_id=%s person_id=%s approver_id=%s",
+            opportunity_id,
+            person_id,
             approver_id,
         )
-        self._approved_assignments.append(
-            {"assignment_id": assignment_id, "approver_id": approver_id}
+        self._approved.append(
+            {
+                "opportunity_id": opportunity_id,
+                "person_id": person_id,
+                "start_date": start_date,
+                "end_date": end_date,
+                "allocation_pct": allocation_pct,
+                "approver_id": approver_id,
+            }
         )
         if self._pending_count > 0:
             self._pending_count -= 1
 
     @workflow.signal
-    async def reject_candidate(self, assignment_id: str, reason: str) -> None:
+    async def reject_candidate(
+        self, opportunity_id: str, person_id: str, reason: str = ""
+    ) -> None:
         workflow.logger.info(
-            "reject_candidate signal: assignment_id=%s reason=%s", assignment_id, reason
+            "reject_candidate signal: opportunity_id=%s person_id=%s reason=%s",
+            opportunity_id,
+            person_id,
+            reason,
         )
-        self._rejected_assignments.append(
-            {"assignment_id": assignment_id, "reason": reason}
+        self._rejected.append(
+            {
+                "opportunity_id": opportunity_id,
+                "person_id": person_id,
+                "reason": reason,
+            }
         )
         if self._pending_count > 0:
             self._pending_count -= 1
@@ -103,11 +149,13 @@ class TeamStaffingWorkflow:
     def get_status(self) -> dict[str, Any]:
         return {
             "status": self._status,
-            "approved_count": len(self._approved_assignments),
-            "rejected_count": len(self._rejected_assignments),
+            "approved_count": len(self._approved),
+            "rejected_count": len(self._rejected),
+            "shortlisted_count": len(self._shortlisted),
             "pending_count": self._pending_count,
-            "approved_assignments": self._approved_assignments,
-            "rejected_assignments": self._rejected_assignments,
+            "approved": self._approved,
+            "rejected": self._rejected,
+            "shortlisted": self._shortlisted,
         }
 
     # ------------------------------------------------------------------
@@ -158,18 +206,20 @@ class TeamStaffingWorkflow:
         )
 
         # ------------------------------------------------------------------
-        # Step 3: Search candidates for each open opportunity
+        # Step 3: Recommend candidates for each open opportunity
         # ------------------------------------------------------------------
         self._status = "searching_candidates"
         recommendation_notification_ids: list[str] = []
         opp_summaries: list[dict[str, Any]] = []
+        region = team.get("region")
 
         for opp_stub in opportunities:
             opp_id = opp_stub.get("id", "")
             if not opp_id:
                 continue
 
-            # 3a. Fetch full opportunity details
+            # 3a. Fetch full opportunity details (for the notification body +
+            # date defaults).
             opportunity: dict[str, Any] = await workflow.execute_activity(
                 get_opportunity_by_id,
                 opp_id,
@@ -179,22 +229,40 @@ class TeamStaffingWorkflow:
             if not opportunity:
                 continue
 
-            required_skills = [s["skill_name"] for s in opportunity.get("required_skills", [])]
             required_band = opportunity.get("band_required", "Analyst")
-            region = team.get("region")  # region from the joined project row
 
-            # 3b. SPARQL candidate search
-            candidates: list[dict[str, Any]] = await workflow.execute_activity(
-                search_candidates,
-                args=[opp_id, required_skills, required_band, region],
-                start_to_close_timeout=_SPARQL_TIMEOUT,
+            # 3b. Agent recommendation (deterministic scorer).
+            recommendation: dict[str, Any] = await workflow.execute_activity(
+                agent_recommend_candidates,
+                args=[opp_id, 5],
+                start_to_close_timeout=_AGENT_TIMEOUT,
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
+            ranked_top = recommendation.get("top", [])
 
-            # 3c. Fallback to Postgres if SPARQL returns nothing
+            # Map agent output into the candidate dict shape the notification
+            # composer expects.
+            candidates: list[dict[str, Any]] = [
+                {
+                    "person_uri": f"urn:person:{c.get('person_id', '')}",
+                    "person_id": c.get("person_id", ""),
+                    "name": c.get("name", ""),
+                    "band": c.get("band", ""),
+                    "region": c.get("region", ""),
+                    "availability_phase": "",
+                    "matched_skills": len(c.get("matched_skills", [])),
+                    "score": c.get("overall_score", 0),
+                    "gate_passed": c.get("gate_passed", True),
+                    "factor_scores": c.get("factor_scores", {}),
+                    "rationale": c.get("rationale", ""),
+                }
+                for c in ranked_top
+            ]
+
+            # 3c. Fallback to Postgres only if the agent returned nothing.
             if not candidates:
                 workflow.logger.info(
-                    "SPARQL returned no candidates for opp=%s — falling back to Postgres",
+                    "Agent returned no candidates for opp=%s — Postgres fallback",
                     opp_id,
                 )
                 pg_persons: list[dict[str, Any]] = await workflow.execute_activity(
@@ -203,10 +271,10 @@ class TeamStaffingWorkflow:
                     start_to_close_timeout=_ACTIVITY_TIMEOUT,
                     retry_policy=_ACTIVITY_RETRY,
                 )
-                # Normalise Postgres rows to the candidate dict shape
                 candidates = [
                     {
                         "person_uri": f"urn:person:{p.get('person_id', '')}",
+                        "person_id": p.get("person_id", ""),
                         "name": p.get("name", ""),
                         "band": p.get("band", ""),
                         "region": p.get("region", ""),
@@ -217,24 +285,31 @@ class TeamStaffingWorkflow:
                     for p in pg_persons
                 ]
 
-            # 3d. Compose candidate recommendation notification
-            recommendation: dict[str, Any] = await workflow.execute_activity(
+            # Store recommendation context for shortlisting on approval.
+            self._opp_context[opp_id] = {
+                "start_date": opportunity.get("start_date", ""),
+                "end_date": opportunity.get("end_date", ""),
+                "candidate_ids": [c.get("person_id", "") for c in candidates],
+            }
+
+            # 3d. Compose candidate recommendation notification.
+            recommendation_content: dict[str, Any] = await workflow.execute_activity(
                 compose_candidate_recommendation,
                 args=[opportunity, candidates],
                 start_to_close_timeout=_ACTIVITY_TIMEOUT,
                 retry_policy=_ACTIVITY_RETRY,
             )
 
-            # 3e. Send notification to project leadership
+            # 3e. Send notification to project leadership.
             notif_ids: list[str] = await workflow.execute_activity(
                 create_notifications_for_leadership,
                 args=[
                     project_id,
                     event_id,
                     "candidate_recommendation",
-                    recommendation["title"],
-                    recommendation["body"],
-                    recommendation["metadata"],
+                    recommendation_content["title"],
+                    recommendation_content["body"],
+                    recommendation_content["metadata"],
                 ],
                 start_to_close_timeout=_ACTIVITY_TIMEOUT,
                 retry_policy=_ACTIVITY_RETRY,
@@ -275,36 +350,63 @@ class TeamStaffingWorkflow:
             workflow.logger.info(
                 "Signal wait timed out after 7 days — proceeding with %d approvals, "
                 "%d rejections, %d still pending",
-                len(self._approved_assignments),
-                len(self._rejected_assignments),
+                len(self._approved),
+                len(self._rejected),
                 self._pending_count,
             )
 
         # ------------------------------------------------------------------
-        # Step 5: Start child AssignmentApprovalWorkflow for each approval
+        # Step 5: For each approval, shortlist via the agent activity. The DB
+        # trigger + pg_listener then start AssignmentApprovalWorkflow exactly
+        # once. We do NOT start the child workflow here (fix #2).
         # ------------------------------------------------------------------
         self._status = "processing_approvals"
-        child_handles: list[Any] = []
 
-        for approval in self._approved_assignments:
-            assignment_id = approval["assignment_id"]
-            child_wf_id = f"assignment-approval-{assignment_id}"
+        for approval in self._approved:
+            opp_id = approval["opportunity_id"]
+            person_id = approval["person_id"]
+            ctx = self._opp_context.get(opp_id, {})
+            start_date = approval.get("start_date") or ctx.get("start_date") or ""
+            end_date = approval.get("end_date") or ctx.get("end_date") or None
+            allocation_pct = float(approval.get("allocation_pct") or 100)
+            approver_id = approval.get("approver_id") or None
 
-            workflow.logger.info(
-                "Starting child AssignmentApprovalWorkflow for assignment=%s", assignment_id
-            )
-            handle = await workflow.start_child_workflow(
-                AssignmentApprovalWorkflow,
-                args=[assignment_id, event_id],
-                id=child_wf_id,
-                task_queue=workflow.info().task_queue,
-            )
-            child_handles.append(handle)
+            if not (opp_id and person_id and start_date):
+                workflow.logger.warning(
+                    "Skipping incomplete approval: opp=%s person=%s start=%s",
+                    opp_id,
+                    person_id,
+                    start_date,
+                )
+                continue
 
-        # Fire-and-forget — approval workflows run independently
-        workflow.logger.info(
-            "Started %d child approval workflow(s)", len(child_handles)
-        )
+            try:
+                shortlist_result: dict[str, Any] = await workflow.execute_activity(
+                    agent_shortlist_candidate,
+                    args=[
+                        opp_id,
+                        person_id,
+                        start_date,
+                        end_date,
+                        allocation_pct,
+                        approver_id,
+                        f"Shortlisted via approval by {approver_id}",
+                    ],
+                    start_to_close_timeout=_ACTIVITY_TIMEOUT,
+                    retry_policy=_ACTIVITY_RETRY,
+                )
+                self._shortlisted.append(shortlist_result)
+                workflow.logger.info(
+                    "Shortlisted person=%s for opp=%s → assignment=%s "
+                    "(approval workflow auto-starts via trigger)",
+                    person_id,
+                    opp_id,
+                    shortlist_result.get("assignment_id"),
+                )
+            except Exception as exc:  # noqa: BLE001
+                workflow.logger.warning(
+                    "Shortlist failed for opp=%s person=%s: %s", opp_id, person_id, exc
+                )
 
         self._status = "complete"
         return {
@@ -314,6 +416,8 @@ class TeamStaffingWorkflow:
             "opportunities_processed": len(opp_summaries),
             "opportunity_summaries": opp_summaries,
             "recommendation_notification_ids": recommendation_notification_ids,
-            "approved_count": len(self._approved_assignments),
-            "rejected_count": len(self._rejected_assignments),
+            "approved_count": len(self._approved),
+            "rejected_count": len(self._rejected),
+            "shortlisted_count": len(self._shortlisted),
+            "shortlisted": self._shortlisted,
         }

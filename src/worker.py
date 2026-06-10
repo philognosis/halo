@@ -54,8 +54,20 @@ async def main() -> None:
     # ------------------------------------------------------------------
     # Workflows
     from src.workflows.approval_workflow import AssignmentApprovalWorkflow  # noqa: PLC0415
+    from src.workflows.opportunity_workflow import OpportunityFillWorkflow  # noqa: PLC0415
     from src.workflows.project_workflow import ProjectOnboardingWorkflow  # noqa: PLC0415
     from src.workflows.staffing_workflow import TeamStaffingWorkflow  # noqa: PLC0415
+
+    # Agent layer — create the module-level SparqlClient before activities run.
+    from src.agents.activities import (  # noqa: PLC0415
+        agent_compare_profiles,
+        agent_propose_team_shape,
+        agent_recommend_candidates,
+        agent_shortlist_candidate,
+        init_agent_sparql,
+    )
+
+    init_agent_sparql()
 
     # Activities — db
     from src.activities.db_activities import (  # noqa: PLC0415
@@ -101,6 +113,7 @@ async def main() -> None:
             ProjectOnboardingWorkflow,
             TeamStaffingWorkflow,
             AssignmentApprovalWorkflow,
+            OpportunityFillWorkflow,
         ],
         activities=[
             # DB activities
@@ -127,6 +140,11 @@ async def main() -> None:
             compose_approval_request,
             # SHACL preflight activity
             validate_allocation_preflight,
+            # Agent activities
+            agent_recommend_candidates,
+            agent_propose_team_shape,
+            agent_shortlist_candidate,
+            agent_compare_profiles,
         ],
     )
 

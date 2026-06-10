@@ -31,6 +31,9 @@ with workflow.unsafe.imports_passed_through():
         mark_domain_event_processed,
     )
     from src.activities.notification_activities import compose_team_nudge
+    from src.agents.activities import agent_propose_team_shape
+
+_AGENT_TIMEOUT = timedelta(seconds=60)
 
 # ---------------------------------------------------------------------------
 # Shared retry policy for all activities in this workflow
@@ -101,6 +104,40 @@ class ProjectOnboardingWorkflow:
             start_to_close_timeout=_ACTIVITY_TIMEOUT,
             retry_policy=_ACTIVITY_RETRY,
         )
+
+        # ------------------------------------------------------------------
+        # Step 3b: Ask the agent for a concrete team-shape proposal so the
+        # nudge gives leadership actionable role suggestions.
+        # ------------------------------------------------------------------
+        try:
+            team_shape: dict[str, Any] = await workflow.execute_activity(
+                agent_propose_team_shape,
+                project_id,
+                start_to_close_timeout=_AGENT_TIMEOUT,
+                retry_policy=RetryPolicy(maximum_attempts=2),
+            )
+        except Exception as exc:  # noqa: BLE001 - non-blocking enrichment
+            workflow.logger.warning(
+                "agent_propose_team_shape failed for project=%s: %s", project_id, exc
+            )
+            team_shape = {}
+
+        suggested_team = team_shape.get("suggested_team") if team_shape else None
+        if suggested_team and suggested_team.get("opportunities"):
+            role_lines = [
+                f"  - {o['role_title']} ({o['band_required']}, {o['role_category']}): "
+                f"{o['rationale']}"
+                for o in suggested_team["opportunities"]
+            ]
+            nudge["body"] = (
+                nudge["body"]
+                + "\n\nSuggested team structure:\n"
+                + "\n".join(role_lines)
+            )
+            nudge["metadata"] = {
+                **nudge.get("metadata", {}),
+                "suggested_team": suggested_team,
+            }
 
         # ------------------------------------------------------------------
         # Step 4: Send initial nudge to all project leaders

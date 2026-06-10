@@ -27,6 +27,7 @@ from src.api.routers import (
     admin,
     approvals,
     assignments,
+    chat,
     health,
     notifications,
     opportunities,
@@ -126,6 +127,7 @@ app.include_router(assignments.router)
 app.include_router(approvals.router)
 app.include_router(notifications.router)
 app.include_router(admin.router)
+app.include_router(chat.router)
 
 
 @app.get("/")

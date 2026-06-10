@@ -52,5 +52,9 @@ class Settings(BaseSettings):
     SHACL_SHAPES_PATH: str = "/app/ontology/shacl-shapes.ttl"
     ONTOLOGY_PATH: str = "/app/ontology/staffing-ontology.ttl"
 
+    # Recommendation agent
+    RECOMMENDATION_TOP_N: int = 5
+    AGENT_EXPLAIN: bool = True
+
 
 settings = Settings()
