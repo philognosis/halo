@@ -227,20 +227,24 @@ function TeamShapeView({ data }: { data: TeamShapeResponse }) {
 // ── Status card (STATUS) ──────────────────────────────────────────────────────
 
 function StatusCard({ data }: { data: ApprovalStatus }) {
-  const colors = {
+  const dbStatus = (data.db_status as string) ?? (data.workflow_decision as string) ?? 'pending'
+  const colors: Record<string, string> = {
     approved: 'border-green-200 bg-green-50 text-green-900',
     rejected: 'border-red-200 bg-red-50 text-red-900',
     pending:  'border-yellow-200 bg-yellow-50 text-yellow-900',
+    short_listed: 'border-blue-200 bg-blue-50 text-blue-900',
   }
-  const cls = colors[data.status] ?? colors.pending
+  const cls = colors[dbStatus] ?? colors.pending
+  const workflowId = data.workflow_id as string | undefined
   return (
     <div className={`rounded-lg border p-4 ${cls}`}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-bold uppercase tracking-wide">{data.status}</span>
-        <span className="text-xs opacity-70">· Assignment {data.id}</span>
+        <span className="text-sm font-bold uppercase tracking-wide">{dbStatus}</span>
+        {workflowId && <span className="text-xs opacity-70">· {workflowId}</span>}
       </div>
-      {data.notes && <p className="mt-1 text-sm opacity-80">{data.notes}</p>}
-      {data.reason && <p className="mt-1 text-sm opacity-80">Reason: {data.reason}</p>}
+      {data.workflow_decision && (
+        <p className="mt-1 text-sm opacity-80">Workflow: {String(data.workflow_decision)}</p>
+      )}
     </div>
   )
 }

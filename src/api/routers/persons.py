@@ -28,7 +28,7 @@ async def list_persons(
         clauses.append(f"band = ${len(args)}")
     if status is not None:
         args.append(status)
-        clauses.append(f"status = ${len(args)}")
+        clauses.append(f"person_status = ${len(args)}")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
 
     args.append(limit)
@@ -39,8 +39,9 @@ async def list_persons(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
-            SELECT id::TEXT, name, band, region, office, status
-            FROM person
+            SELECT person_id::TEXT AS id, name, band, region, office,
+                   person_status AS status, availability_phase, allocated_pct
+            FROM person_availability
             {where}
             ORDER BY name
             LIMIT ${limit_idx} OFFSET ${offset_idx}

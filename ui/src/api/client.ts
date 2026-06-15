@@ -49,6 +49,8 @@ export const getPerson = (id: string) => request<Person>(`/persons/${id}`)
 
 export const getOpportunities = () => request<Opportunity[]>('/opportunities')
 export const getOpportunity = (id: string) => request<Opportunity>(`/opportunities/${id}`)
+export const createOpportunity = (body: Record<string, unknown>) =>
+  request<Opportunity>('/opportunities', { method: 'POST', body: JSON.stringify(body) })
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,8 @@ export const getTeam = (id: string) => request<Team>(`/teams/${id}`)
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 export const getProjects = () => request<Project[]>('/projects')
+export const createProject = (body: Record<string, unknown>) =>
+  request<Project>('/projects', { method: 'POST', body: JSON.stringify(body) })
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
@@ -84,7 +88,7 @@ export const getNotifications = (person_id: string) =>
   request<Notification[]>(`/notifications/${person_id}`)
 
 export const getUnreadCount = (person_id: string) =>
-  request<{ count: number }>(`/notifications/${person_id}/unread-count`)
+  request<{ person_id: string; unread_count: number }>(`/notifications/${person_id}/unread-count`)
 
 export const markNotificationRead = (notif_id: string) =>
   request<Notification>(`/notifications/${notif_id}/read`, { method: 'PATCH', body: '{}' })

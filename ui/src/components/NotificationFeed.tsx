@@ -31,7 +31,7 @@ export default function NotificationFeed({ personId }: Props) {
     try {
       await markNotificationRead(notifId)
       setNotifications(prev =>
-        prev.map(n => n.id === notifId ? { ...n, read: true } : n)
+        prev.map(n => n.id === notifId ? { ...n, is_read: true } : n)
       )
     } catch {
       // silently ignore
@@ -71,27 +71,28 @@ export default function NotificationFeed({ personId }: Props) {
         <li
           key={n.id}
           className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
-            n.read ? 'border-gray-100 bg-white' : 'border-indigo-100 bg-indigo-50'
+            n.is_read ? 'border-gray-100 bg-white' : 'border-indigo-100 bg-indigo-50'
           }`}
         >
           <div className="mt-1 flex-shrink-0">
             <span
               className={`inline-block h-2 w-2 rounded-full ${
-                n.read ? 'bg-gray-300' : 'bg-indigo-500'
+                n.is_read ? 'bg-gray-300' : 'bg-indigo-500'
               }`}
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-sm ${n.read ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
-              {n.message}
+            <p className={`text-sm font-medium ${n.is_read ? 'text-gray-600' : 'text-gray-900'}`}>
+              {n.title}
             </p>
-            {n.created_at && (
-              <p className="mt-0.5 text-xs text-gray-400">
-                {new Date(n.created_at).toLocaleString()}
-              </p>
-            )}
+            <p className={`text-sm mt-0.5 ${n.is_read ? 'text-gray-400' : 'text-gray-700'}`}>
+              {n.body}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-400">
+              {new Date(n.created_at).toLocaleString()}
+            </p>
           </div>
-          {!n.read && (
+          {!n.is_read && (
             <button
               onClick={() => handleMarkRead(n.id)}
               className="flex-shrink-0 text-xs text-indigo-600 hover:text-indigo-800"

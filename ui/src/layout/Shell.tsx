@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/people', label: 'People', icon: PeopleIcon },
   { to: '/opportunities', label: 'Opportunities', icon: BriefcaseIcon },
   { to: '/teams', label: 'Teams', icon: TeamIcon },
+  { to: '/projects', label: 'Projects', icon: ProjectIcon },
 ] as const
 
 const PAGE_TITLES: Record<string, string> = {
@@ -16,6 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/people': 'People',
   '/opportunities': 'Opportunities',
   '/teams': 'Teams',
+  '/projects': 'Projects',
 }
 
 function getTitle(pathname: string): string {
@@ -186,6 +188,14 @@ function MenuIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )
+}
+
+function ProjectIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
     </svg>
   )
 }

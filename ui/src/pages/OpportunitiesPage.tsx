@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getOpportunities, postRecommend } from '../api/client'
-import type { Opportunity, RecommendResponse } from '../types'
+import { getOpportunities, getTeams, postRecommend } from '../api/client'
+import type { Opportunity, RecommendResponse, Team } from '../types'
 import AdaptiveResponse from '../components/AdaptiveResponse'
+import CreateOpportunityModal from '../components/CreateOpportunityModal'
 
 interface DrawerState {
   oppId: string
@@ -12,18 +13,25 @@ interface DrawerState {
 
 export default function OpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [drawer, setDrawer] = useState<DrawerState | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
 
-  useEffect(() => {
+  const loadOpportunities = useCallback(() => {
     setLoading(true)
     getOpportunities()
       .then(setOpportunities)
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load opportunities'))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    loadOpportunities()
+    getTeams().then(setTeams).catch(() => {/* non-critical */})
+  }, [loadOpportunities])
 
   const handleRecommend = useCallback(async (opp: Opportunity) => {
     setDrawer({ oppId: opp.id, result: null, loading: true, error: null })
@@ -62,7 +70,7 @@ export default function OpportunitiesPage() {
       {/* Main list */}
       <div className={`flex flex-1 flex-col min-w-0 overflow-hidden p-6 ${drawer ? 'lg:max-w-[60%]' : ''}`}>
         <div className="space-y-4">
-          {/* Search */}
+          {/* Search + New button */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-sm">
               <svg
@@ -82,6 +90,12 @@ export default function OpportunitiesPage() {
             <span className="text-sm text-gray-500">
               {loading ? '…' : `${filtered.length} of ${opportunities.length}`}
             </span>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="ml-auto rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              New Opportunity
+            </button>
           </div>
 
           {/* Table */}
@@ -174,6 +188,14 @@ export default function OpportunitiesPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Opportunity Modal */}
+      <CreateOpportunityModal
+        open={showCreate}
+        teams={teams}
+        onClose={() => setShowCreate(false)}
+        onCreated={loadOpportunities}
+      />
 
       {/* Recommendation drawer */}
       {drawer && (

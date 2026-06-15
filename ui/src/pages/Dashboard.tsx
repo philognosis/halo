@@ -82,7 +82,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!selectedPersonId) return
     getUnreadCount(selectedPersonId)
-      .then(r => setUnreadCount(r.count))
+      .then(r => setUnreadCount(r.unread_count))
       .catch(() => setUnreadCount(null))
   }, [selectedPersonId])
 

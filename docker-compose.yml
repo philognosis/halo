@@ -121,6 +121,29 @@ services:
       start_period: 60s
 
   # ---------------------------------------------------------------------------
+  # Temporal namespace init — registers the 'staffing' namespace once
+  # ---------------------------------------------------------------------------
+  temporal-init:
+    image: temporalio/admin-tools:1.24.2
+    container_name: staffing-temporal-init
+    restart: "no"
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: "temporal:7233"
+    command:
+      - sh
+      - -c
+      - >
+        temporal operator namespace create
+        --namespace staffing
+        --retention 30d
+        2>&1 | grep -v "already exists" || true
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
   # Temporal UI — web dashboard for workflow inspection
   # ---------------------------------------------------------------------------
   temporal-ui:
@@ -147,6 +170,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       fuseki:
@@ -172,6 +197,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     environment:

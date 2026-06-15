@@ -66,17 +66,20 @@ export default function ApprovalActions({ assignmentId, approverId, onDone }: Pr
   }
 
   if (status) {
-    const colors = {
+    const dbStatus = (status.db_status as string) ?? (status.workflow_decision as string) ?? 'pending'
+    const colors: Record<string, string> = {
       approved: 'bg-green-50 border-green-200 text-green-800',
       rejected: 'bg-red-50 border-red-200 text-red-800',
       pending: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+      short_listed: 'bg-blue-50 border-blue-200 text-blue-800',
     }
-    const cls = colors[status.status] ?? colors.pending
+    const cls = colors[dbStatus] ?? colors.pending
     return (
       <div className={`rounded-lg border p-3 text-sm font-medium ${cls}`}>
-        Assignment {status.status}
-        {status.notes && <p className="mt-1 font-normal opacity-80">{status.notes}</p>}
-        {status.reason && <p className="mt-1 font-normal opacity-80">Reason: {status.reason}</p>}
+        Assignment: <span className="capitalize">{dbStatus.replace('_', ' ')}</span>
+        {status.workflow_decision && (
+          <p className="mt-1 font-normal opacity-80">Workflow: {String(status.workflow_decision)}</p>
+        )}
       </div>
     )
   }

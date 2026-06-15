@@ -6,6 +6,7 @@ import PeoplePage from './pages/PeoplePage'
 import PersonDetailPage from './pages/PersonDetailPage'
 import OpportunitiesPage from './pages/OpportunitiesPage'
 import TeamsPage from './pages/TeamsPage'
+import ProjectsPage from './pages/ProjectsPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/people/:id" element={<PersonDetailPage />} />
           <Route path="/opportunities" element={<OpportunitiesPage />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

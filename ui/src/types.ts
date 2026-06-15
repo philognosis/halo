@@ -116,22 +116,25 @@ export interface TeamShapeResponse {
 
 export interface Notification {
   id: string
-  person_id: string
-  message: string
-  type?: string
-  read: boolean
-  created_at?: string
-  [key: string]: unknown
+  event_id?: string
+  recipient_id: string
+  type: string
+  title: string
+  body: string
+  metadata?: unknown
+  is_read: boolean
+  read_at?: string
+  created_at: string
+  expires_at?: string
 }
 
 // ── Approvals ────────────────────────────────────────────────────────────────
 
 export interface ApprovalStatus {
-  id: string
-  status: 'pending' | 'approved' | 'rejected'
-  approver_id?: string
-  notes?: string
-  reason?: string
+  workflow_id?: string
+  workflow_decision?: string | null
+  db_status?: string | null
+  // team staffing status query result (different shape from team status endpoint)
   [key: string]: unknown
 }
 
