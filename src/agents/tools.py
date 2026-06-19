@@ -16,7 +16,7 @@ import asyncpg
 
 from src.agents.data_access import fetch_persons_by_ids, fetch_skos_skill_matches
 from src.agents.recommendation_graph import run_recommendation
-from src.agents.scoring import score_candidate
+from src.agents.scoring import DEFAULT_WEIGHTS, score_candidate
 from src.agents.team_shaping import propose_team_shape
 from src.config import settings
 
@@ -120,7 +120,7 @@ async def compare_profiles(
             "total_experience_months": c.get("total_experience_months"),
         }
         if requirement:
-            scored = score_candidate(c, requirement, weights={})
+            scored = score_candidate(c, requirement, weights=DEFAULT_WEIGHTS)
             base["overall_score"] = scored["overall_score"]
             base["gate_passed"] = scored["gate_passed"]
             base["factor_scores"] = scored["factor_scores"]

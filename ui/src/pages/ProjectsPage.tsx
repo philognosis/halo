@@ -115,12 +115,12 @@ export default function ProjectsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map(p => {
-                const projectName = (p.project_name as string | undefined) ?? p.name ?? '—'
-                const client = (p.client as string | undefined) ?? '—'
-                const industry = (p.industry as string | undefined) ?? '—'
-                const region = (p.region as string | undefined) ?? '—'
-                const code = (p.unique_code as string | undefined) ?? p.id.slice(0, 8)
-                const startDate = (p.start_date as string | undefined)
+                const projectName = p.project_name ?? p.name ?? '—'
+                const client = p.client ?? '—'
+                const industry = p.industry ?? '—'
+                const region = p.region ?? '—'
+                const code = p.unique_code ?? p.id.slice(0, 8)
+                const startDate = p.start_date
                 const status = p.status?.toLowerCase() ?? ''
                 return (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors">

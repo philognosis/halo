@@ -105,12 +105,11 @@ async def assignment_status(
 # Team staffing workflow (TeamStaffingWorkflow)
 # ---------------------------------------------------------------------------
 @router.post(
-    "/teams/{team_id}/candidates/{assignment_id}/approve",
+    "/teams/{team_id}/approve-candidate",
     response_model=SignalResponse,
 )
 async def approve_candidate(
     team_id: str,
-    assignment_id: str,
     body: CandidateApproveRequest,
     temporal: Client = Depends(get_temporal),
 ) -> SignalResponse:
@@ -118,7 +117,15 @@ async def approve_candidate(
     handle = temporal.get_workflow_handle(workflow_id)
     try:
         await handle.signal(
-            "approve_candidate", args=[assignment_id, body.approver_id]
+            "approve_candidate",
+            args=[
+                body.opportunity_id,
+                body.person_id,
+                body.start_date,
+                body.end_date,
+                body.allocation_pct,
+                body.approver_id,
+            ],
         )
     except RPCError:
         raise _not_found(workflow_id)
@@ -126,19 +133,21 @@ async def approve_candidate(
 
 
 @router.post(
-    "/teams/{team_id}/candidates/{assignment_id}/reject",
+    "/teams/{team_id}/reject-candidate",
     response_model=SignalResponse,
 )
 async def reject_candidate(
     team_id: str,
-    assignment_id: str,
     body: CandidateRejectRequest,
     temporal: Client = Depends(get_temporal),
 ) -> SignalResponse:
     workflow_id = f"team-staffing-{team_id}"
     handle = temporal.get_workflow_handle(workflow_id)
     try:
-        await handle.signal("reject_candidate", args=[assignment_id, body.reason])
+        await handle.signal(
+            "reject_candidate",
+            args=[body.opportunity_id, body.person_id, body.reason],
+        )
     except RPCError:
         raise _not_found(workflow_id)
     return SignalResponse(signaled=True, workflow_id=workflow_id)

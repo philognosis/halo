@@ -465,16 +465,19 @@ async def _resolve_person_names(pool: Any, names: list[str], context: dict) -> l
 
     if plain_names:
         async with pool.acquire() as conn:
-            for n in plain_names:
-                try:
-                    rows = await conn.fetch(
-                        "SELECT id::TEXT FROM person WHERE name ILIKE $1 LIMIT 1",
-                        f"%{n}%",
-                    )
-                    if rows:
-                        ids.append(rows[0]["id"])
-                except asyncpg.PostgresError:
-                    continue
+            try:
+                patterns = [f"%{n}%" for n in plain_names]
+                rows = await conn.fetch(
+                    """
+                    SELECT DISTINCT ON (pattern) p.id::TEXT, pattern
+                    FROM unnest($1::TEXT[]) AS pattern
+                    JOIN person p ON p.name ILIKE pattern
+                    """,
+                    patterns,
+                )
+                ids.extend(r["id"] for r in rows)
+            except asyncpg.PostgresError:
+                pass
 
     if not ids and context.get("person_id"):
         ids.append(context["person_id"])

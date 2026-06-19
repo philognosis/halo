@@ -113,14 +113,29 @@ export const rejectAssignment = (id: string, approver_id: string, reason: string
 export const getTeamApprovalStatus = (team_id: string) =>
   request<ApprovalStatus>(`/approvals/teams/${team_id}/status`)
 
-export const approveTeamCandidate = (team_id: string, assignment_id: string) =>
+export interface CandidateApproveBody {
+  opportunity_id: string
+  person_id: string
+  approver_id?: string
+  start_date?: string
+  end_date?: string
+  allocation_pct?: number
+}
+
+export interface CandidateRejectBody {
+  opportunity_id: string
+  person_id: string
+  reason?: string
+}
+
+export const approveTeamCandidate = (team_id: string, body: CandidateApproveBody) =>
   request<ApprovalStatus>(
-    `/approvals/teams/${team_id}/candidates/${assignment_id}/approve`,
-    { method: 'POST', body: '{}' },
+    `/approvals/teams/${team_id}/approve-candidate`,
+    { method: 'POST', body: JSON.stringify(body) },
   )
 
-export const rejectTeamCandidate = (team_id: string, assignment_id: string) =>
+export const rejectTeamCandidate = (team_id: string, body: CandidateRejectBody) =>
   request<ApprovalStatus>(
-    `/approvals/teams/${team_id}/candidates/${assignment_id}/reject`,
-    { method: 'POST', body: '{}' },
+    `/approvals/teams/${team_id}/reject-candidate`,
+    { method: 'POST', body: JSON.stringify(body) },
   )

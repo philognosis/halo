@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createProject } from '../api/client'
 
 const REGIONS = ['EMEA', 'Americas', 'APAC'] as const
 
@@ -64,21 +65,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: Props) 
     if (form.end_date) body.end_date = form.end_date
 
     try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`
-        try {
-          const data = await res.json()
-          msg = data?.detail ?? data?.message ?? msg
-        } catch {
-          // ignore
-        }
-        throw new Error(msg)
-      }
+      await createProject(body)
       setForm(EMPTY)
       onCreated()
       onClose()

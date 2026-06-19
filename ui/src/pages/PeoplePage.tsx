@@ -25,8 +25,8 @@ export default function PeoplePage() {
     return (
       p.name.toLowerCase().includes(q) ||
       p.role?.toLowerCase().includes(q) ||
-      p.department?.toLowerCase().includes(q) ||
-      p.email?.toLowerCase().includes(q)
+      p.band?.toLowerCase().includes(q) ||
+      p.region?.toLowerCase().includes(q)
     )
   })
 
@@ -114,7 +114,7 @@ export default function PeoplePage() {
                     {person.role ?? '—'}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-600 hidden md:table-cell">
-                    {person.department ?? '—'}
+                    {person.region ?? '—'}
                   </td>
                   <td className="px-3 py-3">
                     <AvailabilityBadge phase={person.availability_phase} />

@@ -107,9 +107,9 @@ export default function PersonDetailPage() {
             {person.email && (
               <p className="mt-0.5 text-xs text-gray-400">{person.email}</p>
             )}
-            {person.department && (
+            {person.band && (
               <p className="mt-0.5 text-xs text-gray-500">
-                Department: <span className="font-medium">{person.department}</span>
+                Band: <span className="font-medium">{person.band}</span>
               </p>
             )}
           </div>
@@ -123,12 +123,12 @@ export default function PersonDetailPage() {
           <div className="mt-5 border-t border-gray-100 pt-4">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Skills</h3>
             <div className="flex flex-wrap gap-1.5">
-              {person.skills.map(skill => (
+              {person.skills.map((skill, i) => (
                 <span
-                  key={skill}
+                  key={typeof skill === 'string' ? skill : skill.skill_name ?? i}
                   className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-100"
                 >
-                  {skill}
+                  {typeof skill === 'string' ? skill : skill.skill_name ?? '—'}
                 </span>
               ))}
             </div>

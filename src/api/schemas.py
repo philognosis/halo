@@ -36,12 +36,19 @@ class RejectRequest(BaseModel):
 
 class CandidateApproveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    approver_id: str
+    opportunity_id: str
+    person_id: str
+    approver_id: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    allocation_pct: float = 100
 
 
 class CandidateRejectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    reason: str
+    opportunity_id: str
+    person_id: str
+    reason: str = ""
 
 
 class CreateProjectRequest(BaseModel):

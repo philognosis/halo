@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createOpportunity } from '../api/client'
 import type { Team } from '../types'
 
 const BAND_HIERARCHY = [
@@ -66,21 +67,7 @@ export default function CreateOpportunityModal({ open, teams, onClose, onCreated
     if (form.end_date) body.end_date = form.end_date
 
     try {
-      const res = await fetch('/api/opportunities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`
-        try {
-          const data = await res.json()
-          msg = data?.detail ?? data?.message ?? msg
-        } catch {
-          // ignore
-        }
-        throw new Error(msg)
-      }
+      await createOpportunity(body)
       setForm(EMPTY)
       onCreated()
       onClose()

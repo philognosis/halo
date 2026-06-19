@@ -10,36 +10,71 @@ export interface Person {
   id: string
   name: string
   role?: string
-  skills?: string[]
-  availability_phase?: AvailabilityPhase
+  band?: string
+  region?: string
+  office?: string
+  status?: string
   email?: string
-  department?: string
-  [key: string]: unknown
+  location?: string
+  hire_date?: string
+  role_category?: string
+  total_experience_months?: number
+  experience_in_role_months?: number
+  skills?: Array<{ skill_id?: string; skill_name?: string; skill_type?: string; proficiency_level?: string; years_experience?: number }>
+  certifications?: Array<{ name?: string; issuer?: string; expiry_date?: string; is_valid?: boolean }>
+  qualifications?: Array<{ degree?: string; institution?: string; field_of_study?: string; level?: string }>
+  languages?: Array<{ language_code?: string; language_name?: string; proficiency?: string }>
+  availability?: {
+    availability_phase?: AvailabilityPhase
+    allocated_pct?: number
+    available_pct?: number
+    active_assignment_count?: number
+    next_available_date?: string
+  }
+  availability_phase?: AvailabilityPhase
+  allocated_pct?: number
 }
 
 export interface Opportunity {
   id: string
-  title: string
+  role_title?: string
+  title?: string
+  description?: string
+  band_required?: string
+  start_date?: string
+  end_date?: string
   status?: string
   required_skills?: string[]
   team_id?: string
   project_id?: string
-  [key: string]: unknown
+  role_category?: string
+  region?: string
 }
 
 export interface Team {
   id: string
   name: string
   project_id?: string
+  team_lead_id?: string
   members?: string[]
-  [key: string]: unknown
+  opportunities?: Array<{ id: string; role_title?: string; status?: string }>
 }
 
 export interface Project {
   id: string
-  name: string
+  unique_code?: string
+  client?: string
+  project_name?: string
+  name?: string
+  start_date?: string
+  end_date?: string
+  industry?: string
+  sector?: string
+  function?: string
+  region?: string
   status?: string
-  [key: string]: unknown
+  leadership?: Array<{ person_id: string; role: string; person_name?: string }>
+  teams?: Array<{ id: string; name: string }>
 }
 
 // ── Candidate (from recommend + SEARCH intent) ───────────────────────────────
@@ -134,8 +169,11 @@ export interface ApprovalStatus {
   workflow_id?: string
   workflow_decision?: string | null
   db_status?: string | null
-  // team staffing status query result (different shape from team status endpoint)
-  [key: string]: unknown
+  status?: string
+  approved_count?: number
+  rejected_count?: number
+  shortlisted_count?: number
+  pending_count?: number
 }
 
 // ── Recommendations ──────────────────────────────────────────────────────────
@@ -149,5 +187,5 @@ export interface RecommendResponse {
 
 export interface HealthResponse {
   status: string
-  [key: string]: unknown
+  version?: string
 }

@@ -60,7 +60,7 @@ async def get_project_by_id(project_id: str) -> dict[str, Any]:
             SELECT
                 p.id, p.unique_code, p.client, p.project_name,
                 p.start_date::TEXT, p.end_date::TEXT,
-                p.industry, p.sector, p.function, p.status,
+                p.industry, p.sector, p.function, p.region, p.status,
                 p.created_at::TEXT, p.updated_at::TEXT
             FROM project p
             WHERE p.id = $1::UUID
