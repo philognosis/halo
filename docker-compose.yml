@@ -1,0 +1,272 @@
+version: "3.9"
+
+# =============================================================================
+# Ontology-Driven Agentic Staffing System — Docker Compose
+# Services: Fuseki (SPARQL/OWL), PostgreSQL, PgAdmin (optional)
+# =============================================================================
+
+networks:
+  staffing-net:
+    driver: bridge
+
+volumes:
+  fuseki-data:
+    driver: local
+  postgres-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Apache Jena Fuseki  — TBox + ABox SPARQL endpoint
+  # ---------------------------------------------------------------------------
+  fuseki:
+    image: stain/jena-fuseki:5.0.0
+    container_name: staffing-fuseki
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      ADMIN_PASSWORD: "${FUSEKI_ADMIN_PASSWORD:-admin-changeme}"
+      JVM_ARGS: "-Xmx2g"
+    volumes:
+      - fuseki-data:/fuseki
+    networks:
+      - staffing-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "admin:${FUSEKI_ADMIN_PASSWORD:-admin-changeme}",
+             "http://localhost:3030/$/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Fuseki Init — uploads ontology files once Fuseki is healthy
+  # ---------------------------------------------------------------------------
+  fuseki-init:
+    image: curlimages/curl:8.7.1
+    container_name: staffing-fuseki-init
+    depends_on:
+      fuseki:
+        condition: service_healthy
+    volumes:
+      - ./ontology:/ontology:ro
+      - ./scripts:/scripts:ro
+    networks:
+      - staffing-net
+    environment:
+      FUSEKI_URL: "http://fuseki:3030"
+      FUSEKI_ADMIN_PASSWORD: "${FUSEKI_ADMIN_PASSWORD:-admin-changeme}"
+    entrypoint: ["/bin/sh", "/scripts/load_ontology.sh"]
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16  — operational source of truth
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: staffing-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB:       "${POSTGRES_DB:-staffingdb}"
+      POSTGRES_USER:     "${POSTGRES_USER:-staffing}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-staffing-changeme}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    networks:
+      - staffing-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-staffing} -d ${POSTGRES_DB:-staffingdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Temporal auto-setup — durable workflow orchestration server
+  # ---------------------------------------------------------------------------
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: staffing-temporal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "7233:7233"
+    environment:
+      DB:                   "postgres"
+      DB_PORT:              "5432"
+      POSTGRES_USER:        "${POSTGRES_USER:-staffing}"
+      POSTGRES_PWD:         "${POSTGRES_PASSWORD:-staffing-changeme}"
+      POSTGRES_SEEDS:       "postgres"
+      DYNAMIC_CONFIG_FILE_PATH: "config/dynamicconfig/development-sql.yaml"
+    volumes:
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
+    networks:
+      - staffing-net
+    healthcheck:
+      test: ["CMD", "temporal", "workflow", "list", "--namespace", "default"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Temporal namespace init — registers the 'staffing' namespace once
+  # ---------------------------------------------------------------------------
+  temporal-init:
+    image: temporalio/admin-tools:1.24.2
+    container_name: staffing-temporal-init
+    restart: "no"
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: "temporal:7233"
+    command:
+      - sh
+      - -c
+      - >
+        temporal operator namespace create
+        --namespace staffing
+        --retention 30d
+        2>&1 | grep -v "already exists" || true
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # Temporal UI — web dashboard for workflow inspection
+  # ---------------------------------------------------------------------------
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: staffing-temporal-ui
+    restart: unless-stopped
+    depends_on:
+      - temporal
+    ports:
+      - "8088:8080"
+    environment:
+      TEMPORAL_ADDRESS: "temporal:7233"
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # Worker — Temporal worker process (registers workflows + activities)
+  # ---------------------------------------------------------------------------
+  worker:
+    build: ./
+    container_name: staffing-worker
+    restart: unless-stopped
+    command: ["python", "-m", "src.worker"]
+    depends_on:
+      temporal:
+        condition: service_healthy
+      temporal-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      fuseki:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:    "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST:   "temporal:7233"
+      FUSEKI_ENDPOINT: "${FUSEKI_ENDPOINT:-http://fuseki:3030/staffing}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    volumes:
+      - ./src:/app/src
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # pg-listener — asyncpg LISTEN/NOTIFY → Temporal workflow starter
+  # ---------------------------------------------------------------------------
+  pg-listener:
+    build: ./
+    container_name: staffing-pg-listener
+    restart: unless-stopped
+    command: ["python", "-m", "src.events.pg_listener"]
+    depends_on:
+      temporal:
+        condition: service_healthy
+      temporal-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:  "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST: "temporal:7233"
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # API — FastAPI service (HITL signal relay, read models, SPARQL/SHACL bridge)
+  # ---------------------------------------------------------------------------
+  api:
+    build: ./
+    container_name: staffing-api
+    restart: unless-stopped
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fuseki:
+        condition: service_started
+      temporal:
+        condition: service_started
+    environment:
+      DATABASE_URL:    "${DATABASE_URL:-postgresql://staffing:staffing-changeme@postgres:5432/staffingdb}"
+      TEMPORAL_HOST:   "temporal:7233"
+      FUSEKI_ENDPOINT: "${FUSEKI_ENDPOINT:-http://fuseki:3030/staffing}"
+    volumes:
+      - ./src:/app/src
+      - ./ontology:/app/ontology
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # UI — React/Vite adaptive staffing dashboard (served by nginx)
+  # ---------------------------------------------------------------------------
+  ui:
+    build: ./ui
+    container_name: staffing-ui
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+    networks:
+      - staffing-net
+
+  # ---------------------------------------------------------------------------
+  # PgAdmin 4  — optional web UI (activate with: --profile tools)
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: staffing-pgadmin
+    profiles:
+      - tools
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    "${PGADMIN_EMAIL:-admin@staffing.local}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_PASSWORD:-pgadmin-changeme}"
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - staffing-net
+    depends_on:
+      postgres:
+        condition: service_healthy

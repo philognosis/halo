@@ -1,0 +1,499 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix stf:  <http://enterprise.org/staffing/> .
+@prefix dc:   <http://purl.org/dc/elements/1.1/> .
+
+# =============================================================================
+# SHACL Shapes — Business Rule Governance
+# Ontology-Driven Agentic Staffing System — Phase 1
+# =============================================================================
+
+<http://enterprise.org/staffing/shapes> a owl:Ontology ;
+    owl:imports <http://enterprise.org/staffing/> ;
+    dc:title "Enterprise Staffing SHACL Shapes" ;
+    dc:description "SHACL shapes that enforce business rules on the staffing ontology ABox. Evaluated by Apache Jena SHACL processor against the staffing named graph." .
+
+# =============================================================================
+# Shape 1: PersonShape
+# Every stf:Person must have a name, a valid-format email, and a recognised band.
+# =============================================================================
+
+stf:PersonShape a sh:NodeShape ;
+    sh:targetClass stf:Person ;
+    rdfs:label "Person Shape" ;
+    rdfs:comment "Validates that every Person has required identity properties." ;
+
+    # Name is mandatory
+    sh:property [
+        sh:path stf:hasName ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:minLength 2 ;
+        sh:message "A Person must have exactly one non-empty name."@en ;
+        sh:severity sh:Violation
+    ] ;
+
+    # Email must be present and match RFC 5322 simplified pattern
+    sh:property [
+        sh:path stf:hasEmail ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$" ;
+        sh:message "A Person must have exactly one email address matching a valid email pattern."@en ;
+        sh:severity sh:Violation
+    ] ;
+
+    # Band must be one of the seven recognised seniority levels
+    sh:property [
+        sh:path stf:hasBand ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (
+            "Analyst"
+            "Consultant"
+            "Senior Consultant"
+            "Manager"
+            "Senior Manager"
+            "Director"
+            "Partner"
+        ) ;
+        sh:message "A Person's band must be one of: Analyst, Consultant, Senior Consultant, Manager, Senior Manager, Director, Partner."@en ;
+        sh:severity sh:Violation
+    ] .
+
+# =============================================================================
+# Shape 2: ProjectTeamStructuralShape
+# A ProjectTeam must have at least 2 staffed seats to be considered a valid team.
+# =============================================================================
+
+stf:ProjectTeamStructuralShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectTeam ;
+    rdfs:label "Project Team Structural Shape" ;
+    rdfs:comment "Prevents a single-person 'team' by requiring at least two stf:hasStaffedSeat links." ;
+
+    sh:property [
+        sh:path stf:hasStaffedSeat ;
+        sh:minCount 2 ;
+        sh:message "A ProjectTeam must have at least 2 staffed seats (stf:hasStaffedSeat). Single-person teams are not permitted."@en ;
+        sh:severity sh:Violation
+    ] .
+
+# =============================================================================
+# Shape 3: EmployeeDoubleAllocationShape
+# SHACL-SPARQL: detects overlapping active allocations for the same employee.
+# Overlap condition: StartA <= EndB AND EndA >= StartB
+# =============================================================================
+
+stf:EmployeeDoubleAllocationShape a sh:NodeShape ;
+    sh:targetClass stf:Employee ;
+    rdfs:label "Employee Double Allocation Shape" ;
+    rdfs:comment "SPARQL-based constraint that detects date-overlapping active allocations for the same Employee." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Employee has overlapping active allocations: allocation {?alloc1} (start {?start1} – end {?end1}) overlaps with allocation {?alloc2} (start {?start2} – end {?end2})."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?alloc1 ?start1 ?end1 ?alloc2 ?start2 ?end2
+            WHERE {
+                $this stf:hasActiveAllocation ?alloc1 .
+                $this stf:hasActiveAllocation ?alloc2 .
+                FILTER (?alloc1 < ?alloc2)
+                ?alloc1 stf:allocationStart ?start1 .
+                ?alloc1 stf:allocationEnd   ?end1 .
+                ?alloc2 stf:allocationStart ?start2 .
+                ?alloc2 stf:allocationEnd   ?end2 .
+                FILTER (xsd:date(?start1) <= xsd:date(?end2) &&
+                        xsd:date(?end1)   >= xsd:date(?start2))
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 4: AllocationDateShape
+# A ProjectAllocation's end date must not precede its start date.
+# =============================================================================
+
+stf:AllocationDateShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Allocation Date Shape" ;
+    rdfs:comment "SPARQL constraint: allocation end date must be >= start date." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "ProjectAllocation {$this}: allocationEnd ({?end}) must be on or after allocationStart ({?start})."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?start ?end
+            WHERE {
+                $this stf:allocationStart ?start .
+                $this stf:allocationEnd   ?end .
+                FILTER (xsd:date(?end) < xsd:date(?start))
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 5: OpportunityBandShape
+# The band of an assigned Person must match the band required by the Opportunity.
+# =============================================================================
+
+stf:OpportunityBandShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Opportunity Band Shape" ;
+    rdfs:comment "Checks that the staffed Employee's band is >= the band required by the Opportunity. Band hierarchy (ascending): Analyst < Consultant < Senior Consultant < Manager < Senior Manager < Director < Partner. A higher band CAN fill a lower requirement." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Assignment {$this}: Employee band '{?personBand}' (rank {?personRank}) is below the required band '{?requiredBand}' (rank {?requiredRank}) for the opportunity."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?personBand ?requiredBand ?personRank ?requiredRank
+            WHERE {
+                $this stf:allocatedEmployee       ?employee .
+                $this stf:allocatedToOpportunity  ?opp .
+                ?employee stf:hasBand             ?personBand .
+                ?opp      stf:requiredBand         ?requiredBand .
+
+                # Encode the band hierarchy as a numeric rank for comparison
+                BIND(
+                  IF(?personBand = "Analyst",           1,
+                  IF(?personBand = "Consultant",        2,
+                  IF(?personBand = "Senior Consultant", 3,
+                  IF(?personBand = "Manager",           4,
+                  IF(?personBand = "Senior Manager",    5,
+                  IF(?personBand = "Director",          6,
+                  IF(?personBand = "Partner",           7, 0))))))) AS ?personRank)
+
+                BIND(
+                  IF(?requiredBand = "Analyst",           1,
+                  IF(?requiredBand = "Consultant",        2,
+                  IF(?requiredBand = "Senior Consultant", 3,
+                  IF(?requiredBand = "Manager",           4,
+                  IF(?requiredBand = "Senior Manager",    5,
+                  IF(?requiredBand = "Director",          6,
+                  IF(?requiredBand = "Partner",           7, 0))))))) AS ?requiredRank)
+
+                # Violation if person's rank is strictly BELOW required rank
+                FILTER (xsd:integer(?personRank) < xsd:integer(?requiredRank))
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 6: CertificationValidityShape
+# If an Opportunity mandates a certification, the assigned Person must hold it
+# with a valid (non-expired) expiry date or no expiry date.
+# =============================================================================
+
+stf:CertificationValidityShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Certification Validity Shape" ;
+    rdfs:comment "SPARQL constraint: if an Opportunity has a mandatory certification requirement, the allocated Employee must possess a matching, non-expired certification." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Assignment {$this}: Employee does not hold a valid certification for the mandatory requirement '{?requiredCert}' on the opportunity."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?employee ?requiredCert
+            WHERE {
+                $this stf:allocatedEmployee       ?employee .
+                $this stf:allocatedToOpportunity  ?opp .
+                ?opp  stf:requiresCertification   ?requiredCert .
+                ?opp  stf:certRequirementMandatory true .
+                FILTER NOT EXISTS {
+                    ?employee stf:hasCertification ?cert .
+                    ?cert     stf:certificationName ?requiredCert .
+                    OPTIONAL { ?cert stf:certificationExpiry ?expiry }
+                    FILTER (!BOUND(?expiry) || xsd:date(?expiry) >= xsd:date(NOW()))
+                }
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 7: ProjectDateShape
+# A ClientEngagement's projectEndDate must be >= projectStartDate.
+# =============================================================================
+
+stf:ProjectDateShape a sh:NodeShape ;
+    sh:targetClass stf:ClientEngagement ;
+    rdfs:label "Project Date Shape" ;
+    rdfs:comment "Ensures that a project's end date is not before its start date." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "ClientEngagement {$this}: projectEndDate ({?end}) must be on or after projectStartDate ({?start})."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?start ?end
+            WHERE {
+                $this stf:projectStartDate ?start .
+                $this stf:projectEndDate   ?end .
+                FILTER (xsd:date(?end) < xsd:date(?start))
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 8: AssignmentStatusShape
+# Assignment status must be one of the three allowed lifecycle values.
+# =============================================================================
+
+stf:AssignmentStatusShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Assignment Status Shape" ;
+    rdfs:comment "Validates the assignment status lifecycle value." ;
+
+    sh:property [
+        sh:path stf:assignmentStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (
+            "short_listed"
+            "staffed"
+            "cancelled"
+        ) ;
+        sh:message "Assignment status must be one of: short_listed, staffed, cancelled."@en ;
+        sh:severity sh:Violation
+    ] .
+
+# =============================================================================
+# Shape 9: OnLeaveBlockShape
+# An Employee in the OnLeave phase must not receive new allocations.
+# Severity: Violation (hard block). Applied at pre-flight and commit stages.
+# =============================================================================
+
+stf:OnLeaveBlockShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "On Leave Block Shape" ;
+    rdfs:comment "Blocks creation of a ProjectAllocation when the allocated Employee is currently in the OnLeave availability phase. Enforces the gUFO phase constraint at the semantic layer (the Postgres trigger fn_block_unavailable_assignment enforces the same rule at DB layer)." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Assignment {$this}: Employee {?employee} is currently in the OnLeave phase and cannot be staffed."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "rdf" ;
+                sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?employee
+            WHERE {
+                $this stf:allocatedEmployee ?employee .
+                ?employee stf:hasAvailabilityPhase ?phase .
+                ?phase rdf:type stf:OnLeave .
+            }
+        """
+    ] .
+
+# =============================================================================
+# Shape 10: TotalAllocationCapShape
+# The sum of active allocation_pct for an Employee must not exceed 100%.
+# This operates on the ABox projection of active allocations.
+# Severity: Violation. (The Postgres trigger fn_check_allocation_cap mirrors this.)
+# =============================================================================
+
+stf:TotalAllocationCapShape a sh:NodeShape ;
+    sh:targetClass stf:Employee ;
+    rdfs:label "Total Allocation Cap Shape" ;
+    rdfs:comment "SPARQL constraint: the sum of allocationPct across all active ProjectAllocations for an Employee must not exceed 100. Prevents silent overcommitment that Jena could otherwise accept." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Employee {$this} is overcommitted: total active allocation = {?total}% (max 100%)."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this (SUM(?pct) AS ?total)
+            WHERE {
+                $this stf:hasActiveAllocation ?alloc .
+                ?alloc stf:allocationPct ?pct .
+                FILTER (xsd:decimal(?pct) > 0)
+            }
+            GROUP BY $this
+            HAVING (SUM(?pct) > 100)
+        """
+    ] .
+
+# =============================================================================
+# Shape 11: OpportunityOpenShape
+# Assignments can only be made to Opportunities with status 'open'.
+# Severity: Violation — prevents staffing a filled or cancelled role.
+# =============================================================================
+
+stf:OpportunityOpenShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Opportunity Open Shape" ;
+    rdfs:comment "Prevents assignment to an Opportunity that is no longer open." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Assignment {$this}: Opportunity {?opp} has status '{?status}' — only 'open' opportunities can receive assignments."@en ;
+        sh:severity sh:Violation ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?opp ?status
+            WHERE {
+                $this stf:allocatedToOpportunity ?opp .
+                ?opp  stf:opportunityStatus       ?status .
+                FILTER (?status != "open")
+            }
+        """
+    ] .
+
+# =============================================================================
+# PRE-FLIGHT WARNING SHAPES (sh:Warning severity)
+# These run at the shortlisting stage to surface soft issues early.
+# They do NOT block — they surface in the UI as advisory flags for HITL review.
+# Mirrors the 3-stage SHACL pattern from the refined architecture:
+#   Stage 1 (sh:Warning pre-flight) → Stage 2 (sh:Warning at ApprovalGate) → Stage 3 (sh:Violation at commit)
+# =============================================================================
+
+stf:PartialAvailabilityWarningShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Partial Availability Warning Shape" ;
+    rdfs:comment "Pre-flight WARNING (not a block): alerts when an Employee being shortlisted is already PartiallyAllocated. Does not prevent shortlisting but surfaces in the UI for the approver's attention." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "PRE-FLIGHT: Employee {?employee} is already PartiallyAllocated ({?total}% committed). Review before confirming staffing."@en ;
+        sh:severity sh:Warning ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "rdf" ;
+                sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?employee ?total
+            WHERE {
+                $this stf:allocatedEmployee ?employee .
+                ?employee stf:hasAvailabilityPhase ?phase .
+                ?phase rdf:type stf:PartiallyAllocated .
+                {
+                    SELECT ?employee (SUM(?pct) AS ?total) WHERE {
+                        ?employee stf:hasActiveAllocation ?alloc .
+                        ?alloc stf:allocationPct ?pct .
+                    } GROUP BY ?employee
+                }
+            }
+        """
+    ] .
+
+stf:CertExpiryWarningShape a sh:NodeShape ;
+    sh:targetClass stf:ProjectAllocation ;
+    rdfs:label "Certification Expiry Warning Shape" ;
+    rdfs:comment "Pre-flight WARNING: fires when a required certification will expire before the allocation end date. Does not block, but prompts HITL review." ;
+
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "PRE-FLIGHT: Employee {?employee}'s certification '{?certName}' expires {?expiry}, which is before the allocation end date {?allocEnd}."@en ;
+        sh:severity sh:Warning ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "stf" ;
+                sh:namespace "http://enterprise.org/staffing/"^^xsd:anyURI
+            ] ;
+            sh:declare [
+                sh:prefix "xsd" ;
+                sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI
+            ]
+        ] ;
+        sh:select """
+            SELECT $this ?employee ?certName ?expiry ?allocEnd
+            WHERE {
+                $this stf:allocatedEmployee      ?employee .
+                $this stf:allocationEnd          ?allocEnd .
+                ?employee stf:hasCertification   ?cert .
+                ?cert stf:certificationName      ?certName .
+                ?cert stf:certificationExpiry    ?expiry .
+                FILTER (xsd:date(?expiry) < xsd:date(?allocEnd))
+            }
+        """
+    ] .

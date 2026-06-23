@@ -1,0 +1,272 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix geo:  <http://www.opengis.net/ont/geosparql#> .
+@prefix gufo: <http://purl.org/nemo/gufo#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix stf:  <http://enterprise.org/staffing/> .
+@prefix inst: <http://enterprise.org/staffing/instance/> .
+
+# =============================================================================
+# ABox Sample — Instance Data
+# Projected from PostgreSQL seed data. This file illustrates the
+# Postgres → Jena projection pattern and includes PROV-DM triples.
+#
+# Persons:   Priya Sharma, Luca Rossi, Rajan Mehta
+# Projects:  NovaPay Core Banking, MedCore Digital Health
+# Teams:     Core Banking Data Team, MedCore Platform Engineering
+# Opportunities: Senior Data Engineer (NovaPay), Cloud Solutions Architect (MedCore)
+# Assignments:   Rajan → NovaPay, Priya → MedCore
+# =============================================================================
+
+# =============================================================================
+# PERSONS
+# =============================================================================
+
+inst:person-priya-sharma a stf:Person, stf:Consultant ;
+    stf:hasName    "Priya Sharma"^^xsd:string ;
+    stf:hasEmail   "priya.sharma@enterprise.org"^^xsd:string ;
+    stf:hasBand    "Manager"^^xsd:string ;
+    stf:hasRegion  "EMEA"^^xsd:string ;
+    stf:hasOffice  "London HQ"^^xsd:string ;
+    stf:totalExperienceMonths "120"^^xsd:integer ;
+    stf:experienceInRoleMonths "24"^^xsd:integer ;
+    stf:hasSkill   stf:AWS ;
+    stf:hasSkill   stf:Python ;
+    stf:hasSkill   stf:Healthcare ;
+    stf:hasSkill   stf:ChangeManagement ;
+    stf:hasSkill   stf:StakeholderManagement ;
+    stf:hasLocation inst:location-london ;
+    stf:hasCertification inst:cert-priya-aws ;
+    stf:hasCertification inst:cert-priya-scrum ;
+    stf:hasQualification inst:qual-priya-msc ;
+    stf:hasQualification inst:qual-priya-beng .
+
+inst:person-luca-rossi a stf:Person, stf:Consultant ;
+    stf:hasName    "Luca Rossi"^^xsd:string ;
+    stf:hasEmail   "luca.rossi@enterprise.org"^^xsd:string ;
+    stf:hasBand    "Senior Consultant"^^xsd:string ;
+    stf:hasRegion  "EMEA"^^xsd:string ;
+    stf:hasOffice  "London HQ"^^xsd:string ;
+    stf:totalExperienceMonths "84"^^xsd:integer ;
+    stf:experienceInRoleMonths "18"^^xsd:integer ;
+    stf:hasSkill   stf:React ;
+    stf:hasSkill   stf:TypeScript ;
+    stf:hasSkill   stf:Java ;
+    stf:hasSkill   stf:Retail ;
+    stf:hasLocation inst:location-london ;
+    stf:hasCertification inst:cert-luca-java ;
+    stf:hasQualification inst:qual-luca-bsc .
+
+inst:person-rajan-mehta a stf:Person, stf:Consultant ;
+    stf:hasName    "Rajan Mehta"^^xsd:string ;
+    stf:hasEmail   "rajan.mehta@enterprise.org"^^xsd:string ;
+    stf:hasBand    "Senior Consultant"^^xsd:string ;
+    stf:hasRegion  "APAC"^^xsd:string ;
+    stf:hasOffice  "Mumbai Office"^^xsd:string ;
+    stf:totalExperienceMonths "72"^^xsd:integer ;
+    stf:experienceInRoleMonths "24"^^xsd:integer ;
+    stf:hasSkill   stf:Spark ;
+    stf:hasSkill   stf:SQL ;
+    stf:hasSkill   stf:Python ;
+    stf:hasSkill   stf:Banking ;
+    stf:hasLocation inst:location-mumbai ;
+    stf:hasCertification inst:cert-rajan-databricks ;
+    stf:hasQualification inst:qual-rajan-btech .
+
+# =============================================================================
+# LOCATIONS
+# =============================================================================
+
+inst:location-london a stf:Location, geo:Feature ;
+    rdfs:label "London, United Kingdom"@en ;
+    geo:asWKT "POINT(-0.1276 51.5074)"^^geo:wktLiteral .
+
+inst:location-mumbai a stf:Location, geo:Feature ;
+    rdfs:label "Mumbai, India"@en ;
+    geo:asWKT "POINT(72.8777 19.0760)"^^geo:wktLiteral .
+
+# =============================================================================
+# CERTIFICATIONS
+# =============================================================================
+
+inst:cert-priya-aws a stf:CertificationRecord ;
+    stf:certificationName   "AWS Certified Solutions Architect"^^xsd:string ;
+    stf:certificationIssuer "Amazon Web Services"^^xsd:string ;
+    stf:certificationExpiry "2027-02-13"^^xsd:date .
+
+inst:cert-priya-scrum a stf:CertificationRecord ;
+    stf:certificationName   "Certified Scrum Master"^^xsd:string ;
+    stf:certificationIssuer "Scrum Alliance"^^xsd:string ;
+    stf:certificationExpiry "2025-05-31"^^xsd:date .
+
+inst:cert-luca-java a stf:CertificationRecord ;
+    stf:certificationName   "Oracle Certified Professional Java SE"^^xsd:string ;
+    stf:certificationIssuer "Oracle"^^xsd:string .
+
+inst:cert-rajan-databricks a stf:CertificationRecord ;
+    stf:certificationName   "Databricks Certified Data Engineer"^^xsd:string ;
+    stf:certificationIssuer "Databricks"^^xsd:string ;
+    stf:certificationExpiry "2026-05-29"^^xsd:date .
+
+# =============================================================================
+# QUALIFICATIONS
+# =============================================================================
+
+inst:qual-priya-msc a stf:QualificationRecord ;
+    stf:qualificationLevel "master"^^xsd:string ;
+    stf:qualificationField "Data Science"^^xsd:string ;
+    rdfs:label "MSc Data Science, University College London (2016)"@en .
+
+inst:qual-priya-beng a stf:QualificationRecord ;
+    stf:qualificationLevel "bachelor"^^xsd:string ;
+    stf:qualificationField "Computer Science"^^xsd:string ;
+    rdfs:label "BEng Computer Science, University of Warwick (2014)"@en .
+
+inst:qual-luca-bsc a stf:QualificationRecord ;
+    stf:qualificationLevel "bachelor"^^xsd:string ;
+    stf:qualificationField "Software Engineering"^^xsd:string ;
+    rdfs:label "BSc Software Engineering, Politecnico di Milano (2019)"@en .
+
+inst:qual-rajan-btech a stf:QualificationRecord ;
+    stf:qualificationLevel "bachelor"^^xsd:string ;
+    stf:qualificationField "Computer Science"^^xsd:string ;
+    rdfs:label "BTech Computer Science, IIT Bombay (2020)"@en .
+
+# =============================================================================
+# PROJECTS / CLIENT ENGAGEMENTS
+# =============================================================================
+
+inst:proj-novapay-corebanking a stf:ClientEngagement ;
+    stf:projectCode       "PROJ-FT-2025-001"^^xsd:string ;
+    rdfs:label            "Core Banking Modernisation"@en ;
+    stf:engagementIndustry "FinTech"^^xsd:string ;
+    stf:engagementSector   "Banking"^^xsd:string ;
+    stf:engagementFunction "Technology"^^xsd:string ;
+    stf:projectStartDate  "2025-01-15"^^xsd:date ;
+    stf:projectEndDate    "2026-06-30"^^xsd:date ;
+    stf:hasTeam           inst:team-novapay-dataeng .
+
+inst:proj-medcore-healthrecords a stf:ClientEngagement ;
+    stf:projectCode       "PROJ-HC-2025-002"^^xsd:string ;
+    rdfs:label            "Digital Health Records Platform"@en ;
+    stf:engagementIndustry "Healthcare"^^xsd:string ;
+    stf:engagementSector   "Public"^^xsd:string ;
+    stf:engagementFunction "Technology"^^xsd:string ;
+    stf:projectStartDate  "2025-04-01"^^xsd:date ;
+    stf:projectEndDate    "2026-09-30"^^xsd:date ;
+    stf:hasTeam           inst:team-medcore-platform .
+
+# =============================================================================
+# TEAMS
+# =============================================================================
+
+inst:team-novapay-dataeng a stf:ProjectTeam ;
+    rdfs:label "Core Banking Data Team"@en ;
+    stf:hasOpportunity inst:opp-senior-data-engineer ;
+    stf:hasStaffedSeat inst:person-rajan-mehta ;
+    stf:hasStaffedSeat inst:person-luca-rossi .   # second seat for SHACL team-size rule
+
+inst:team-medcore-platform a stf:ProjectTeam ;
+    rdfs:label "Platform Engineering Team"@en ;
+    stf:hasOpportunity inst:opp-cloud-architect ;
+    stf:hasStaffedSeat inst:person-priya-sharma ;
+    stf:hasStaffedSeat inst:person-rajan-mehta .   # shared resource (20% overlap - illustrative)
+
+# =============================================================================
+# OPPORTUNITIES
+# =============================================================================
+
+inst:opp-senior-data-engineer a stf:Opportunity ;
+    stf:opportunityRole "Senior Data Engineer"^^xsd:string ;
+    stf:requiredBand    "Senior Consultant"^^xsd:string ;
+    stf:allocationStart "2025-07-01"^^xsd:date ;
+    stf:allocationEnd   "2026-06-30"^^xsd:date ;
+    stf:assignmentStatus "filled"^^xsd:string .
+
+inst:opp-cloud-architect a stf:Opportunity ;
+    stf:opportunityRole "Cloud Solutions Architect"^^xsd:string ;
+    stf:requiredBand    "Manager"^^xsd:string ;
+    stf:allocationStart "2025-06-01"^^xsd:date ;
+    stf:allocationEnd   "2026-09-30"^^xsd:date ;
+    stf:assignmentStatus "filled"^^xsd:string .
+
+# =============================================================================
+# PROJECT ALLOCATIONS (Relators)
+# =============================================================================
+
+inst:alloc-rajan-novapay a stf:ProjectAllocation ;
+    rdfs:label            "Rajan Mehta → NovaPay Core Banking Data Team"@en ;
+    stf:allocatedEmployee    inst:person-rajan-mehta ;
+    stf:allocatedToOpportunity inst:opp-senior-data-engineer ;
+    stf:allocationStart      "2025-07-01"^^xsd:date ;
+    stf:allocationEnd        "2026-06-30"^^xsd:date ;
+    stf:allocationPct        "100"^^xsd:decimal ;
+    stf:assignmentStatus     "staffed"^^xsd:string ;
+    stf:approvedBy           inst:person-thomas-becker-ref ;
+    prov:wasGeneratedBy      inst:approval-rajan-novapay ;
+    prov:wasAttributedTo     inst:person-thomas-becker-ref .
+
+# Inverse link from employee
+inst:person-rajan-mehta stf:isStaffedOn inst:alloc-rajan-novapay ;
+                        stf:hasActiveAllocation inst:alloc-rajan-novapay .
+
+inst:alloc-priya-medcore a stf:ProjectAllocation ;
+    rdfs:label            "Priya Sharma → MedCore Digital Health Platform Team"@en ;
+    stf:allocatedEmployee    inst:person-priya-sharma ;
+    stf:allocatedToOpportunity inst:opp-cloud-architect ;
+    stf:allocationStart      "2025-06-01"^^xsd:date ;
+    stf:allocationEnd        "2026-09-30"^^xsd:date ;
+    stf:allocationPct        "100"^^xsd:decimal ;
+    stf:assignmentStatus     "staffed"^^xsd:string ;
+    stf:approvedBy           inst:person-amelia-hartley-ref ;
+    prov:wasGeneratedBy      inst:approval-priya-medcore ;
+    prov:wasAttributedTo     inst:person-amelia-hartley-ref .
+
+inst:person-priya-sharma stf:isStaffedOn inst:alloc-priya-medcore ;
+                         stf:hasActiveAllocation inst:alloc-priya-medcore .
+
+# =============================================================================
+# PROV-DM PROVENANCE TRIPLES
+# Demonstrates the Postgres prov_log → Jena PROV-DM projection pattern.
+# Full provenance for inst:alloc-rajan-novapay
+# =============================================================================
+
+# ApprovalEvent (prov:Activity)
+inst:approval-rajan-novapay a stf:ApprovalEvent, prov:Activity ;
+    rdfs:label "Staffing Approval: Rajan Mehta onto NovaPay Core Banking Data Team"@en ;
+    prov:startedAtTime   "2025-06-10T09:00:00Z"^^xsd:dateTime ;
+    prov:endedAtTime     "2025-06-10T09:05:00Z"^^xsd:dateTime ;
+    prov:wasAssociatedWith inst:person-thomas-becker-ref ;
+    rdfs:comment "Thomas Becker (Delivery Lead) reviewed and approved the staffing of Rajan Mehta to the Senior Data Engineer role. Databricks certification and Spark expertise confirmed."@en .
+
+# The allocation entity was generated by the approval activity
+inst:alloc-rajan-novapay prov:wasGeneratedBy inst:approval-rajan-novapay ;
+    prov:generatedAtTime "2025-06-10T09:05:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo inst:person-thomas-becker-ref .
+
+# Reference to the approver (Thomas Becker from seed data)
+inst:person-thomas-becker-ref a stf:Person, prov:Agent ;
+    stf:hasName  "Thomas Becker"^^xsd:string ;
+    stf:hasEmail "thomas.becker@enterprise.org"^^xsd:string ;
+    stf:hasBand  "Senior Manager"^^xsd:string .
+
+# Reference to the partner (Amelia Hartley) for MedCore approval
+inst:person-amelia-hartley-ref a stf:Person, prov:Agent ;
+    stf:hasName  "Amelia Hartley"^^xsd:string ;
+    stf:hasEmail "amelia.hartley@enterprise.org"^^xsd:string ;
+    stf:hasBand  "Partner"^^xsd:string .
+
+# ApprovalEvent for Priya's allocation
+inst:approval-priya-medcore a stf:ApprovalEvent, prov:Activity ;
+    rdfs:label "Staffing Approval: Priya Sharma onto MedCore Platform Engineering Team"@en ;
+    prov:startedAtTime   "2025-05-15T14:00:00Z"^^xsd:dateTime ;
+    prov:endedAtTime     "2025-05-15T14:08:00Z"^^xsd:dateTime ;
+    prov:wasAssociatedWith inst:person-amelia-hartley-ref ;
+    rdfs:comment "Amelia Hartley (Engagement Partner) approved Priya Sharma as Cloud Solutions Architect. AWS certification and healthcare domain knowledge verified against opportunity requirements."@en .
+
+inst:alloc-priya-medcore prov:wasGeneratedBy inst:approval-priya-medcore ;
+    prov:generatedAtTime "2025-05-15T14:08:00Z"^^xsd:dateTime ;
+    prov:wasAttributedTo inst:person-amelia-hartley-ref .
