@@ -60,10 +60,13 @@ async def main() -> None:
 
     # Agent layer — create the module-level SparqlClient before activities run.
     from src.agents.activities import (  # noqa: PLC0415
+        agent_candidate_arbitration,
         agent_compare_profiles,
+        agent_conflict_resolution,
         agent_propose_team_shape,
         agent_recommend_candidates,
         agent_shortlist_candidate,
+        agent_team_composition_debate,
         init_agent_sparql,
     )
 
@@ -145,6 +148,10 @@ async def main() -> None:
             agent_propose_team_shape,
             agent_shortlist_candidate,
             agent_compare_profiles,
+            # Multi-agent activities
+            agent_team_composition_debate,
+            agent_candidate_arbitration,
+            agent_conflict_resolution,
         ],
     )
 

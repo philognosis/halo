@@ -48,6 +48,7 @@ with workflow.unsafe.imports_passed_through():
     from src.activities.notification_activities import compose_approval_request
     from src.activities.shacl_activities import validate_allocation_preflight
     from src.activities.sparql_activities import project_allocation_to_abox
+    from src.agents.activities import agent_conflict_resolution
     from src.config import settings as _settings
 
 # ---------------------------------------------------------------------------
@@ -195,6 +196,60 @@ class AssignmentApprovalWorkflow:
             }
 
         # ------------------------------------------------------------------
+        # Step 3b: Run multi-agent conflict resolution for enriched analysis
+        # ------------------------------------------------------------------
+        conflict_result: dict[str, Any] = {}
+        try:
+            person_avail: dict[str, Any] = await workflow.execute_activity(
+                get_person_availability,
+                person_id,
+                start_to_close_timeout=_ACTIVITY_TIMEOUT,
+                retry_policy=_ACTIVITY_RETRY,
+            )
+
+            opp_for_conflict: dict[str, Any] = await workflow.execute_activity(
+                get_opportunity_by_id,
+                opportunity_id,
+                start_to_close_timeout=_ACTIVITY_TIMEOUT,
+                retry_policy=_ACTIVITY_RETRY,
+            )
+
+            conflict_result = await workflow.execute_activity(
+                agent_conflict_resolution,
+                args=[
+                    {
+                        "opportunity_id": opportunity_id,
+                        "person_id": person_id,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "allocation_pct": allocation_pct,
+                    },
+                    person_avail or {},
+                    opp_for_conflict or {},
+                ],
+                start_to_close_timeout=timedelta(seconds=120),
+                retry_policy=RetryPolicy(maximum_attempts=2),
+            )
+        except Exception as exc:  # noqa: BLE001
+            workflow.logger.warning(
+                "agent_conflict_resolution failed for assignment=%s: %s",
+                assignment_id, exc,
+            )
+
+        conflicts = conflict_result.get("conflicts", [])
+        conflict_recommendation = conflict_result.get("recommendation")
+
+        if conflict_recommendation and conflict_recommendation.get("action") == "escalate":
+            workflow.logger.warning(
+                "Conflict resolution recommends escalation for assignment=%s",
+                assignment_id,
+            )
+            warnings = warnings + [
+                f"Conflict detected: {c.get('description', c.get('type', 'unknown'))}"
+                for c in conflicts
+            ]
+
+        # ------------------------------------------------------------------
         # Step 4 + 5: Compose approval request (include warnings if any)
         # ------------------------------------------------------------------
 
@@ -230,6 +285,19 @@ class AssignmentApprovalWorkflow:
             )
             notification_content["body"] = notification_content["body"] + warning_text
             notification_content["metadata"]["warnings"] = warnings
+
+        # Append conflict resolution analysis if available
+        if conflicts:
+            notification_content["metadata"]["conflict_analysis"] = {
+                "conflicts": conflicts,
+                "recommendation": conflict_recommendation,
+                "alternative_candidates": conflict_result.get("alternative_candidates", []),
+            }
+            if conflict_recommendation:
+                notification_content["body"] += (
+                    f"\n\nConflict Analysis: {conflict_recommendation.get('action', 'unknown')}"
+                    f" — {conflict_recommendation.get('reasoning', '')}"
+                )
 
         # ------------------------------------------------------------------
         # Step 6: Notify leadership

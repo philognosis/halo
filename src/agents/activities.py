@@ -15,7 +15,10 @@ from typing import Any
 from temporalio import activity
 
 from src.activities.db_activities import get_pool
+from src.agents.arbitration_graph import run_candidate_arbitration
+from src.agents.conflict_resolution_graph import run_conflict_resolution
 from src.agents.recommendation_graph import run_recommendation
+from src.agents.team_composition_graph import run_team_composition_debate
 from src.agents.team_shaping import propose_team_shape
 from src.agents.tools import (
     compare_profiles,
@@ -146,4 +149,48 @@ async def agent_compare_profiles(
     pool = get_pool()
     sparql = _get_sparql()
     result = await compare_profiles(pool, sparql, person_ids, opportunity_id)
+    return _json_safe(result)
+
+
+@activity.defn(name="agent_team_composition_debate")
+async def agent_team_composition_debate(project_id: str) -> dict[str, Any]:
+    activity.logger.info("agent_team_composition_debate: project_id=%s", project_id)
+    pool = get_pool()
+    result = await run_team_composition_debate(pool, project_id)
+    return _json_safe(result)
+
+
+@activity.defn(name="agent_candidate_arbitration")
+async def agent_candidate_arbitration(
+    opportunity_id: str,
+    candidates: list,
+    requirement: dict,
+    top_n: int = 5,
+) -> dict[str, Any]:
+    activity.logger.info(
+        "agent_candidate_arbitration: opportunity_id=%s candidates=%d",
+        opportunity_id,
+        len(candidates),
+    )
+    pool = get_pool()
+    sparql = _get_sparql()
+    result = await run_candidate_arbitration(
+        pool, sparql, opportunity_id, candidates, requirement, top_n
+    )
+    return _json_safe(result)
+
+
+@activity.defn(name="agent_conflict_resolution")
+async def agent_conflict_resolution(
+    assignment_details: dict,
+    person: dict,
+    opportunity: dict,
+) -> dict[str, Any]:
+    activity.logger.info(
+        "agent_conflict_resolution: person=%s opportunity=%s",
+        person.get("name", person.get("id")),
+        opportunity.get("role_title", assignment_details.get("opportunity_id")),
+    )
+    pool = get_pool()
+    result = await run_conflict_resolution(pool, assignment_details, person, opportunity)
     return _json_safe(result)
