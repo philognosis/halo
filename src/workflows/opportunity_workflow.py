@@ -26,7 +26,7 @@ with workflow.unsafe.imports_passed_through():
         get_opportunity_by_id,
         mark_domain_event_processed,
     )
-    from src.agents.activities import agent_recommend_candidates
+    from src.agents.activities import agent_candidate_arbitration, agent_recommend_candidates
 
 # ---------------------------------------------------------------------------
 # Shared retry / timeout config (mirrors the other workflows)
@@ -108,11 +108,41 @@ class OpportunityFillWorkflow:
         # ------------------------------------------------------------------
         recommendation: dict[str, Any] = await workflow.execute_activity(
             agent_recommend_candidates,
-            args=[opportunity_id, 5],
+            args=[opportunity_id, 10],
             start_to_close_timeout=_AGENT_TIMEOUT,
             retry_policy=RetryPolicy(maximum_attempts=2),
         )
         top = recommendation.get("top", [])
+
+        # ------------------------------------------------------------------
+        # Step 3b: Multi-agent arbitration for richer ranking
+        # ------------------------------------------------------------------
+        if top and len(top) >= 2:
+            try:
+                arbitration: dict[str, Any] = await workflow.execute_activity(
+                    agent_candidate_arbitration,
+                    args=[
+                        opportunity_id,
+                        top,
+                        recommendation.get("requirement", {}),
+                        5,
+                    ],
+                    start_to_close_timeout=timedelta(seconds=120),
+                    retry_policy=RetryPolicy(maximum_attempts=2),
+                )
+                arbitrated_top = arbitration.get("top", [])
+                if arbitrated_top:
+                    top = arbitrated_top
+                    workflow.logger.info(
+                        "Arbitration enriched ranking for opportunity=%s", opportunity_id
+                    )
+            except Exception as exc:  # noqa: BLE001
+                workflow.logger.warning(
+                    "agent_candidate_arbitration failed for opportunity=%s: %s — "
+                    "using deterministic ranking", opportunity_id, exc,
+                )
+        else:
+            top = top[:5]
 
         # ------------------------------------------------------------------
         # Step 4: Compose + send a candidate-recommendation nudge to leadership

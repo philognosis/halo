@@ -31,7 +31,7 @@ with workflow.unsafe.imports_passed_through():
         mark_domain_event_processed,
     )
     from src.activities.notification_activities import compose_team_nudge
-    from src.agents.activities import agent_propose_team_shape
+    from src.agents.activities import agent_propose_team_shape, agent_team_composition_debate
 
 _AGENT_TIMEOUT = timedelta(seconds=60)
 
@@ -106,37 +106,69 @@ class ProjectOnboardingWorkflow:
         )
 
         # ------------------------------------------------------------------
-        # Step 3b: Ask the agent for a concrete team-shape proposal so the
-        # nudge gives leadership actionable role suggestions.
+        # Step 3b: Run multi-agent team composition debate for an enriched
+        # proposal. Falls back to the simple deterministic proposal.
         # ------------------------------------------------------------------
+        debate_result: dict[str, Any] = {}
         try:
-            team_shape: dict[str, Any] = await workflow.execute_activity(
-                agent_propose_team_shape,
+            debate_result = await workflow.execute_activity(
+                agent_team_composition_debate,
                 project_id,
-                start_to_close_timeout=_AGENT_TIMEOUT,
+                start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=RetryPolicy(maximum_attempts=2),
             )
-        except Exception as exc:  # noqa: BLE001 - non-blocking enrichment
+        except Exception as exc:  # noqa: BLE001
             workflow.logger.warning(
-                "agent_propose_team_shape failed for project=%s: %s", project_id, exc
+                "agent_team_composition_debate failed for project=%s: %s — "
+                "falling back to simple proposal", project_id, exc,
             )
-            team_shape = {}
 
-        suggested_team = team_shape.get("suggested_team") if team_shape else None
-        if suggested_team and suggested_team.get("opportunities"):
+        debate_roles = debate_result.get("roles", [])
+
+        if not debate_roles:
+            try:
+                team_shape = await workflow.execute_activity(
+                    agent_propose_team_shape,
+                    project_id,
+                    start_to_close_timeout=_AGENT_TIMEOUT,
+                    retry_policy=RetryPolicy(maximum_attempts=2),
+                )
+            except Exception as exc:  # noqa: BLE001
+                workflow.logger.warning(
+                    "agent_propose_team_shape failed for project=%s: %s", project_id, exc
+                )
+                team_shape = {}
+
+            suggested_team = team_shape.get("suggested_team") if team_shape else None
+            if suggested_team and suggested_team.get("opportunities"):
+                role_lines = [
+                    f"  - {o['role_title']} ({o['band_required']}, {o['role_category']}): "
+                    f"{o['rationale']}"
+                    for o in suggested_team["opportunities"]
+                ]
+                nudge["body"] = (
+                    nudge["body"]
+                    + "\n\nSuggested team structure:\n"
+                    + "\n".join(role_lines)
+                )
+                nudge["metadata"] = {
+                    **nudge.get("metadata", {}),
+                    "suggested_team": suggested_team,
+                }
+        else:
             role_lines = [
-                f"  - {o['role_title']} ({o['band_required']}, {o['role_category']}): "
-                f"{o['rationale']}"
-                for o in suggested_team["opportunities"]
+                f"  - {r.get('role', '?')} x{r.get('count', 1)}: {r.get('rationale', '')}"
+                for r in debate_roles
             ]
             nudge["body"] = (
                 nudge["body"]
-                + "\n\nSuggested team structure:\n"
+                + f"\n\nSuggested team structure ({debate_result.get('debate_rounds', 1)} "
+                f"debate round(s), {debate_result.get('total_fte', 0)} FTE):\n"
                 + "\n".join(role_lines)
             )
             nudge["metadata"] = {
                 **nudge.get("metadata", {}),
-                "suggested_team": suggested_team,
+                "debate_result": debate_result,
             }
 
         # ------------------------------------------------------------------
